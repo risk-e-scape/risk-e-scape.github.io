@@ -194,7 +194,16 @@ function esc(s) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-function prefix(depth) { return depth === 0 ? '' : '../'.repeat(depth); }
+/* 'root' is for 404.html specifically: GitHub Pages serves that file's
+   BYTES for any unmatched URL while leaving the mistyped URL in the
+   address bar, so 404.html has no fixed depth the way every other page
+   does. A relative asset path there resolves against whatever deep URL
+   the visitor actually typed and silently 404s the stylesheet itself --
+   it must always use root-absolute paths instead. */
+function prefix(depth) {
+  if (depth === 'root') return '/';
+  return depth === 0 ? '' : '../'.repeat(depth);
+}
 
 function write(relPath, html) {
   const full = path.join(OUT, relPath);
@@ -213,15 +222,42 @@ function copyDir(from, to) {
   return n;
 }
 
-function head(title, depth, extra) {
+/* opts:
+     extra       raw HTML appended to <head> (e.g. a noindex meta)
+     description used for <meta description> and Open Graph/Twitter
+     path        this page's path under baseUrl (e.g. 'course/'), used to
+                 build the canonical URL and og:url. Omit for pages that
+                 shouldn't claim a canonical address (the 404 page). */
+function head(title, depth, opts) {
+  opts = opts || {};
+  const p = prefix(depth);
+  const description = opts.description ||
+    `${P.name} — course information and certificate verification.`;
+  const url = opts.path != null ? `${config.baseUrl}/${opts.path}` : null;
+  const ogImage = `${config.baseUrl}/assets/logos/banner.png`;
+
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
-<link rel="stylesheet" href="${prefix(depth)}assets/css/site.css">
-${extra || ''}</head>
+<meta name="description" content="${esc(description)}">
+${url ? `<link rel="canonical" href="${esc(url)}">\n` : ''}<meta name="theme-color" content="#14532d">
+<link rel="icon" href="${p}assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="${p}assets/favicon-32x32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="${p}assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="${esc(P.name)}">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(description)}">
+${url ? `<meta property="og:url" content="${esc(url)}">\n` : ''}<meta property="og:image" content="${esc(ogImage)}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${esc(title)}">
+<meta name="twitter:description" content="${esc(description)}">
+<meta name="twitter:image" content="${esc(ogImage)}">
+<link rel="stylesheet" href="${p}assets/css/site.css">
+${opts.extra || ''}</head>
 <body>`;
 }
 
@@ -311,6 +347,10 @@ function footer(depth) {
 function recordPage(rec) {
   const d = 2;
   const meta = '<meta name="robots" content="noindex">\n';
+  const description = rec.status === 'revoked'
+    ? `Certificate ${rec.certificate_id} has been revoked and is no longer valid.`
+    : `Certificate ${rec.certificate_id}, issued to ${rec.name} by ${P.name}. ` +
+      `Verify its authenticity here.`;
 
   const card = rec.status === 'revoked' ? `
     <div class="card revoked">
@@ -336,7 +376,9 @@ function recordPage(rec) {
         Download certificate (PDF)</a>
     </div>`;
 
-  return head(`Certificate ${rec.certificate_id} — ${P.name}`, d, meta) + header('verify', d) + `
+  return head(`Certificate ${rec.certificate_id} — ${P.name}`, d, {
+    extra: meta, description, path: `c/${rec.certificate_id}/`
+  }) + header('verify', d) + `
 <div class="verify-wrap">
   <h1 class="page-title">Certificate record</h1>
   <p class="prog">Published by ${esc(P.host)}.</p>
@@ -350,7 +392,10 @@ function recordPage(rec) {
 
 function verifyPage() {
   const d = 1;
-  return head(`Verify a Certificate — ${P.name}`, d) + header('verify', d) + `
+  return head(`Verify a Certificate — ${P.name}`, d, {
+    description: `Enter a certificate ID to verify a ${P.name} credential.`,
+    path: 'verify/'
+  }) + header('verify', d) + `
 <div class="verify-wrap">
   <h1 class="page-title">Verify a Certificate</h1>
   <p class="prog">${esc(P.name)}</p>
@@ -394,11 +439,18 @@ document.getElementById('f').addEventListener('submit', function (e) {
 }
 
 function notFoundPage() {
-  /* GitHub Pages serves this for any unmatched path, which is where a
-     mistyped or unknown certificate ID lands. */
-  const d = 0;
-  return head('Certificate not found — ' + P.name, d,
-    '<meta name="robots" content="noindex">\n') + header('verify', d) + `
+  /* GitHub Pages serves this file's content for any unmatched path --
+     which is exactly where a mistyped or unknown certificate ID lands --
+     while leaving the requested URL in the address bar. Unlike every
+     other page, this one has no fixed depth, so every link and asset
+     here must be root-absolute ('root' below), never relative. Getting
+     this wrong doesn't 404 visibly: the page renders with the stylesheet
+     silently failed to load, i.e. completely unstyled. */
+  const d = 'root';
+  return head('Certificate not found — ' + P.name, d, {
+    extra: '<meta name="robots" content="noindex">\n',
+    description: 'No certificate matches this address.'
+  }) + header('verify', d) + `
 <div class="verify-wrap">
   <div class="card err">
     <h2>No certificate matches this ID</h2>
@@ -407,16 +459,32 @@ function notFoundPage() {
        IDs look like <span class="mono">RES-B2-0001-HN24</span>.</p>
   </div>
   <p class="hint foot-note">
-    <a href="verify/">Try another certificate ID</a> ·
+    <a href="/verify/">Try another certificate ID</a> ·
     Contact <a href="mailto:${esc(P.contactEmail)}">${esc(P.contactEmail)}</a>
   </p>
 </div>` + footer(d);
 }
 
+const PAGE_META = {
+  'index.html': {
+    title: P.name,
+    description: `${P.name}: verify a certificate, or learn about the course on disaster ` +
+      `health and climate resilience, delivered by ${P.host}.`,
+    path: ''
+  },
+  'course.html': {
+    title: `The Course — ${P.name}`,
+    description: `Course overview: disaster response, humanitarian medicine, displacement, ` +
+      `leadership and community engagement — ${P.name}.`,
+    path: 'course/'
+  }
+};
+
 function templatePage(file, current, depth) {
   let html = fs.readFileSync(path.join(SRC, 'pages', file), 'utf8');
+  const meta = PAGE_META[file];
   const map = {
-    '{{HEAD}}': head(file === 'index.html' ? P.name : `The Course — ${P.name}`, depth),
+    '{{HEAD}}': head(meta.title, depth, { description: meta.description, path: meta.path }),
     '{{HEADER}}': header(current, depth),
     '{{FOOTER}}': footer(depth),
     '{{PARTNER_LOGOS}}': partnerLogos(depth),
@@ -470,6 +538,18 @@ function build() {
   write('course/index.html', templatePage('course.html', 'course', 1));
   write('verify/index.html', verifyPage());
   write('404.html', notFoundPage());
+
+  write('robots.txt', `User-agent: *\nAllow: /\nSitemap: ${config.baseUrl}/sitemap.xml\n`);
+
+  /* Deliberately just these three. Certificate record pages are already
+     noindex — listing every /c/<ID>/ here would rebuild the exact public
+     roster this site is designed not to have. */
+  const sitemapUrls = ['', 'course/', 'verify/'];
+  write('sitemap.xml',
+    `<?xml version="1.0" encoding="UTF-8"?>\n` +
+    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+    sitemapUrls.map((u) => `  <url><loc>${esc(config.baseUrl)}/${u}</loc></url>`).join('\n') +
+    `\n</urlset>\n`);
 
   const counts = { issued: 0, revoked: 0, pending: 0 };
   for (const r of all) {

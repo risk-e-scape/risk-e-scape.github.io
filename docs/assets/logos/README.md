@@ -6,7 +6,7 @@ missing, the page shows a small text placeholder instead of a broken image.
 | File | Used for |
 | --- | --- |
 | `riskescape.png` | RISK-E-SCAPE project mark, site header |
-| `banner.png` | Info Day banner, not currently used on any page |
+| `banner.png` | Info Day banner — used as the Open Graph / Twitter share-preview image on every page |
 | `uoa.jpg` | National and Kapodistrian University of Athens — Greece |
 | `ku.svg` | Kathmandu University — Nepal |
 | `pu.jpg` | Pokhara University — Nepal |

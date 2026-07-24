@@ -73,6 +73,10 @@ const recordPage = (id) => {
   const p = path.join(OUT, 'c', id, 'index.html');
   return fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : null;
 };
+const readOut = (rel) => {
+  const p = path.join(OUT, rel);
+  return fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : null;
+};
 const byStatus = (s) => records.filter((r) => r.status === s);
 
 function allFiles(dir) {
@@ -175,6 +179,49 @@ check('every partner logo referenced is present',
 check('EU emblem present', fs.existsSync(path.join(logoDir, config.euFunding.file)), true);
 check('EU disclaimer on every page',
   allHtml.every((h) => h.includes('Funded by the European Union')), true);
+
+/* --- meta / SEO / sharing ------------------------------------------------ */
+
+check('favicon files exist',
+  ['favicon.svg', 'favicon-32x32.png', 'apple-touch-icon.png']
+    .every((f) => fs.existsSync(path.join(OUT, 'assets', f))), true);
+check('OG share image exists', fs.existsSync(path.join(logoDir, 'banner.png')), true);
+check('every page has a meta description',
+  allHtml.every((h) => /<meta name="description" content="[^"]+"/.test(h)), true);
+check('every page has an Open Graph image tag',
+  allHtml.every((h) => h.includes('property="og:image"')), true);
+check('home page has a canonical link matching baseUrl root',
+  readOut('index.html').includes(`<link rel="canonical" href="${config.baseUrl}/">`), true);
+check('record page has a canonical link matching its own ID',
+  sp.includes(`<link rel="canonical" href="${config.baseUrl}/c/${sample.certificate_id}/">`), true);
+check('404 page has NO canonical link (it is not a real address)',
+  readOut('404.html').includes('rel="canonical"'), false);
+
+/* GitHub Pages serves 404.html's bytes for any unmatched URL while
+   leaving the mistyped address in the browser's location bar. A relative
+   href/src there resolves against THAT url, not the site root, and
+   silently 404s -- most visibly the stylesheet, which makes the whole
+   page render unstyled with no visible error. Every href/src in this one
+   file must be root-absolute, mailto:, or a full http(s) URL. */
+{
+  const notFoundHtml = readOut('404.html');
+  const relative = [...notFoundHtml.matchAll(/(?:href|src)="([^"]+)"/g)]
+    .map((m) => m[1])
+    .filter((v) => !/^(\/|mailto:|https?:)/.test(v));
+  check('404 page has zero relative asset/link paths', relative, []);
+}
+
+check('robots.txt exists and points at the sitemap',
+  (readOut('robots.txt') || '').includes(`Sitemap: ${config.baseUrl}/sitemap.xml`), true);
+
+const sitemap = readOut('sitemap.xml') || '';
+check('sitemap.xml exists and lists the three public pages',
+  ['<loc>' + config.baseUrl + '/</loc>',
+   '<loc>' + config.baseUrl + '/course/</loc>',
+   '<loc>' + config.baseUrl + '/verify/</loc>']
+    .every((u) => sitemap.includes(u)), true);
+check('sitemap.xml contains NO certificate IDs -- that would rebuild the public roster',
+  records.some((r) => sitemap.includes(r.certificate_id)), false);
 
 /* --- the frozen URL ------------------------------------------------------ */
 
