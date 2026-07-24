@@ -36,7 +36,7 @@ test.js         checks the built output
 build.bat/.sh   double-click build
 preview.bat/.sh double-click preview
 src/
-  pages/        index.html, course.html — templates with {{TOKENS}}
+  pages/        index.html, course.html — templates with {{TOKENS}} (course renders to course/index.html)
   assets/       site.css and logos
 docs/           GENERATED. Never edit by hand; overwritten every build.
 tools/          certificate layout mock, not part of the published site
@@ -74,24 +74,17 @@ printed means reprinting them.
 https://risk-e-scape.github.io/c/RES-B2-0001-HN24/
 ```
 
-### One remaining step: the repo name
-
-The org's repo must be renamed to **exactly** `risk-e-scape.github.io` — that specific name is
-what makes GitHub Pages serve from the domain root. Any other name (including the org's own name,
-`risk-e-scape`) gets served at a sub-path instead:
-`https://risk-e-scape.github.io/risk-e-scape/...`. GitHub → repo → Settings → repository name.
-
-Confirm the rename actually took by checking that the site loads at the root URL above, with
-nothing after `.io`, before generating a single QR code.
+Repo is renamed and live — confirmed serving from the domain root at
+`https://risk-e-scape.github.io/`, nothing after `.io`.
 
 ### Contact email
 
-Should also be a role account, not personal — `riskescape@du.ac.bd` if the department can create
-it. That is set separately in `config.json` under `programme.contactEmail`; it currently reads
-`devstudies@du.ac.bd`, which is institutional and fine as a placeholder in the meantime. A free
-mailbox (`@gmail.com` etc.) is the fallback if neither is available — weaker on a credential,
-since anyone can register a lookalike, so treat it as temporary and hold the password with the
-coordination office rather than one person.
+`config.json` → `programme.contactEmail` is currently `riskescape.du@gmail.com` — a free mailbox,
+not an institutional one. Works, but anyone can register a lookalike Gmail address, so it proves
+nothing about who is behind the site — weaker on a credential than a `du.ac.bd` address would be.
+Treat the password as shared with the coordination office, not held by one person. Worth revisiting
+for `riskescape@du.ac.bd` if the department can create it later — that's a `config.json` edit and
+a rebuild, nothing more.
 
 ### Publishing
 
@@ -128,7 +121,7 @@ The random suffix is not decoration: without it IDs are sequential and anyone ca
 
 These block printing, and none of them are code.
 
-- [ ] **Permanent `baseUrl`** — see above.
+- [x] **Permanent `baseUrl`** — `risk-e-scape.github.io`, live.
 - [ ] **Batch 1 roster reconciliation** — does a clean list of names and completions exist?
 - [ ] **Eligibility rule** — what earns a certificate (attendance, assignments, both)? `status` is
       meaningless until this is written down.

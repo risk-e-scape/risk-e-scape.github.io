@@ -97,7 +97,7 @@ check('a page exists for every revoked record',
 check('NO page exists for a pending record',
   byStatus('pending').every((r) => recordPage(r.certificate_id) === null), true);
 check('core pages built',
-  ['index.html', 'course.html', 'verify/index.html', '404.html', '.nojekyll']
+  ['index.html', 'course/index.html', 'verify/index.html', '404.html', '.nojekyll']
     .every((f) => fs.existsSync(path.join(OUT, f))), true);
 
 /* --- certificate IDs -------------------------------------------------- */
@@ -142,8 +142,14 @@ check('revoked page shows no Drive URL', revPage.includes('drive.google.com'), f
 const forbidden = ['email', 'phone', 'address', 'nid', 'grade', 'marks', 'dob'];
 check('participant files carry no fields beyond the certificate',
   records.some((r) => forbidden.some((k) => r[k])), false);
-check('no participant email address anywhere in the build',
-  allHtml.some((h) => /@(gmail|yahoo|hotmail|outlook)\./i.test(h)), false);
+/* The official contact address is meant to appear on every page — it's the
+   configured one, not a leak. Strip it out first, then check what's left. */
+const officialEmail = config.programme.contactEmail;
+check('no OTHER free-mailbox address leaks in besides the official contact one',
+  allHtml.some((h) => {
+    const stripped = h.split(officialEmail).join('');
+    return /@(gmail|yahoo|hotmail|outlook)\./i.test(stripped);
+  }), false);
 check('no PDF committed to the site',
   allFiles(OUT).some((f) => f.endsWith('.pdf')), false);
 check('every issued record links to Drive, not a local file',

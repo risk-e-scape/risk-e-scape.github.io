@@ -243,7 +243,7 @@ function header(current, depth) {
     <a class="wordmark" href="${p}index.html">${mark}</a>
     <nav class="site">
       <a href="${p}index.html"${on('home')}>Home</a>
-      <a href="${p}course.html"${on('course')}>The Course</a>
+      <a href="${p}course/"${on('course')}>The Course</a>
       <a href="${p}verify/"${on('verify')}>Verify a Certificate</a>
     </nav>
   </div>
@@ -279,7 +279,7 @@ function footer(depth) {
       <div>
         <h4>Certificates</h4>
         <p><a href="${p}verify/">Verify a certificate</a></p>
-        <p><a href="${p}course.html">About the course</a></p>
+        <p><a href="${p}course/">About the course</a></p>
       </div>
       <div>
         <h4>Funding</h4>
@@ -467,7 +467,7 @@ function build() {
   copyDir(path.join(SRC, 'assets'), path.join(OUT, 'assets'));
 
   write('index.html', templatePage('index.html', 'home', 0));
-  write('course.html', templatePage('course.html', 'course', 0));
+  write('course/index.html', templatePage('course.html', 'course', 1));
   write('verify/index.html', verifyPage());
   write('404.html', notFoundPage());
 
