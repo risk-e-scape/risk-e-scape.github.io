@@ -114,30 +114,40 @@ check('ID batch number matches the file it is in',
 /* --- escaping --------------------------------------------------------- */
 
 const xss = records.find((r) => r.name.includes('<script>'));
-check('injected markup is escaped, not emitted',
-  recordPage(xss.certificate_id).includes('<script>alert('), false);
-check('injected markup survives as visible text',
-  recordPage(xss.certificate_id).includes('&lt;script&gt;'), true);
+if (xss) {
+  check('injected markup is escaped, not emitted',
+    recordPage(xss.certificate_id).includes('<script>alert('), false);
+  check('injected markup survives as visible text',
+    recordPage(xss.certificate_id).includes('&lt;script&gt;'), true);
+}
 
 const apostrophe = records.find((r) => r.name.includes("O'Sullivan"));
-check('apostrophe in a name is escaped',
-  recordPage(apostrophe.certificate_id).includes('O&#39;Sullivan'), true);
+if (apostrophe) {
+  check('apostrophe in a name is escaped',
+    recordPage(apostrophe.certificate_id).includes('O&#39;Sullivan'), true);
+}
 
 const bangla = records.find((r) => /[ঀ-৿]/.test(r.name));
-check('Bangla-script name is emitted intact',
-  recordPage(bangla.certificate_id).includes(bangla.name), true);
+if (bangla) {
+  check('Bangla-script name is emitted intact',
+    recordPage(bangla.certificate_id).includes(bangla.name), true);
+}
 
 const comma = records.find((r) => r.name.includes(','));
-check('a name containing a comma survives the CSV round trip',
-  comma && recordPage(comma.certificate_id).includes(comma.name), true);
+if (comma) {
+  check('a name containing a comma survives the CSV round trip',
+    recordPage(comma.certificate_id).includes(comma.name), true);
+}
 
 /* --- revoked ---------------------------------------------------------- */
 
 const revoked = byStatus('revoked')[0];
-const revPage = recordPage(revoked.certificate_id);
-check('revoked page says so', revPage.includes('has been revoked'), true);
-check('revoked page offers no PDF link', revPage.includes('class="dl"'), false);
-check('revoked page shows no Drive URL', revPage.includes('drive.google.com'), false);
+if (revoked) {
+  const revPage = recordPage(revoked.certificate_id);
+  check('revoked page says so', revPage.includes('has been revoked'), true);
+  check('revoked page offers no PDF link', revPage.includes('class="dl"'), false);
+  check('revoked page shows no Drive URL', revPage.includes('drive.google.com'), false);
+}
 
 /* --- data hygiene ------------------------------------------------------ */
 

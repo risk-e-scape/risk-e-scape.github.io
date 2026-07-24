@@ -49,7 +49,7 @@ const REQUIRED_CONFIG = {
   baseUrl: 'string',
   programme: { name: 'string', fullTitle: 'string', project: 'string', host: 'string', address: 'string', contactEmail: 'string' },
   brand: { logo: 'string', banner: 'string' },
-  euFunding: { file: 'string', label: 'string', disclaimer: 'string' },
+  euFunding: { file: 'string', disclaimer: 'string' },
   partners: 'array'
 };
 
@@ -74,6 +74,17 @@ function validateConfig(cfg) {
     }
   }
   check(cfg, REQUIRED_CONFIG, '');
+
+  if (Array.isArray(cfg.partners)) {
+    cfg.partners.forEach((p, idx) => {
+      for (const field of ['slug', 'file', 'name', 'short', 'site']) {
+        if (!p || typeof p[field] !== 'string' || !p[field].trim()) {
+          errors.push(`config.json: partner[${idx}] missing required string "${field}"`);
+        }
+      }
+    });
+  }
+
   if (errors.length) {
     console.error('\nConfig validation failed:\n');
     for (const e of errors) console.error('  * ' + e);
@@ -483,9 +494,6 @@ const copyScript = rec.status !== 'revoked' ? (
     'btn.className = \'copy-btn\';' +
     'btn.textContent = \'Copy\';' +
     'btn.setAttribute(\'aria-label\', \'Copy certificate ID\');' +
-    'btn.style.marginLeft = \'8px\';' +
-    'btn.style.fontSize = \'12px\';' +
-    'btn.style.padding = \'2px 8px\';' +
     'btn.addEventListener(\'click\', function () {' +
     'navigator.clipboard.writeText(el.dataset.id).then(function () {' +
     'var old = btn.textContent;' +
@@ -493,7 +501,7 @@ const copyScript = rec.status !== 'revoked' ? (
     'setTimeout(function () { btn.textContent = old; }, 1500);' +
     '});' +
     '});' +
-    'el.parentNode.insertBefore(btn, el.nextSibling);' +
+    'el.appendChild(btn);' +
     '});' +
     '})();' +
     '</script>'
