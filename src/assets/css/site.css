@@ -1,6 +1,10 @@
 /* RISK-E-SCAPE certificate site — shared styles.
    Palette sampled from the project banner: maroon "RISK", green "SCAPE",
-   pale watercolour wash. */
+   pale watercolour wash.
+
+   Fixed light theme, deliberately — this is an institutional certificate
+   verification site, not an app. It should look the same regardless of a
+   visitor's OS dark-mode setting, so there is no dark palette here. */
 
 :root {
   --brand-red:   #9e2a2b;
@@ -25,15 +29,6 @@
   --wrap: 940px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #14171a; --bg-alt: #1a1e22; --fg: #e8eaed; --muted: #9aa3ae; --line: #2c3238;
-    --accent: #7fc99a; --accent-soft: #1a2420;
-    --brand-wash: #16242c;
-    --warn-bg: #2a1a18; --warn-line: #7a3b34; --warn-fg: #f0a49b;
-  }
-}
-
 * { box-sizing: border-box; }
 
 body {
@@ -51,9 +46,6 @@ body {
   padding: 9px 20px; font-size: 13px; text-align: center;
 }
 .mockbar code { background: rgba(0,0,0,.06); padding: 1px 5px; border-radius: 3px; }
-@media (prefers-color-scheme: dark) {
-  .mockbar { background: #2b2415; color: #e8cd85; border-color: #5e4c1e; }
-}
 
 /* ---------- wordmark ---------- */
 .wordmark {
@@ -62,19 +54,9 @@ body {
   display: inline-flex; align-items: center;
 }
 .wordmark img { height: 30px; width: auto; display: block; }
-/* The supplied logo is dark-on-transparent, so it disappears against a dark
-   background. Lifting it onto a light plate is safer than recolouring a
-   partner mark. */
-@media (prefers-color-scheme: dark) {
-  .wordmark img { background: #fff; padding: 3px 6px; border-radius: 4px; }
-}
 .wordmark .r { color: var(--brand-red); }
 .wordmark .e { color: var(--brand-green); }
 .wordmark .s { color: var(--brand-dark); }
-@media (prefers-color-scheme: dark) {
-  .wordmark .r { color: #d97070; }
-  .wordmark .s { color: #7fc99a; }
-}
 
 /* ---------- header / nav ---------- */
 header.site {
@@ -109,7 +91,6 @@ nav.site a[aria-current="page"] { background: var(--accent); color: var(--bg); }
   font-size: 12px; letter-spacing: .18em; text-transform: uppercase;
   color: var(--brand-red); font-weight: 700; margin-bottom: 12px;
 }
-@media (prefers-color-scheme: dark) { .eyebrow { color: #d97070; } }
 
 /* ---------- buttons ---------- */
 .btn {
@@ -137,7 +118,6 @@ p.sec-sub { color: var(--muted); margin: 0 0 26px; max-width: 62ch; }
   font-size: 12px; font-weight: 700; color: var(--brand-red);
   letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px;
 }
-@media (prefers-color-scheme: dark) { .tile .num { color: #d97070; } }
 
 /* ---------- steps ---------- */
 ol.steps { margin: 0; padding-left: 20px; max-width: 62ch; }
@@ -153,14 +133,6 @@ ol.steps li { margin-bottom: 12px; font-size: 15px; }
   height: 58px; text-decoration: none;
 }
 .logos .logo img { max-height: 58px; max-width: 140px; width: auto; object-fit: contain; }
-/* Partner marks are supplied dark-on-transparent or dark-on-white and would
-   vanish in dark mode. A light plate keeps every mark legible without
-   recolouring anyone's logo, which their brand rules would not allow. */
-@media (prefers-color-scheme: dark) {
-  .logos .logo img, .eu-block img {
-    background: #fff; padding: 5px 7px; border-radius: 5px;
-  }
-}
 .logo-missing {
   display: inline-flex; align-items: center; justify-content: center;
   height: 52px; min-width: 82px; padding: 0 14px;
@@ -168,7 +140,6 @@ ol.steps li { margin-bottom: 12px; font-size: 15px; }
   font-size: 13px; font-weight: 700; letter-spacing: .04em; color: var(--muted);
 }
 .logo-missing.eu { border-color: var(--eu-blue); color: var(--eu-blue); }
-@media (prefers-color-scheme: dark) { .logo-missing.eu { border-color: #7f9fe0; color: #9db4e8; } }
 
 /* ---------- footer ---------- */
 footer.site {
