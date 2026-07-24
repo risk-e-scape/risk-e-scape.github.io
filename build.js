@@ -30,7 +30,7 @@ const P = config.programme;
 
 const ID_RE = /^RES-B\d+-\d{4}-[A-Z0-9]{4}$/;
 const COLUMNS = ['certificate_id', 'name', 'completed', 'issued', 'status',
-                 'pdf_link', 'sha256', 'revoked_on'];
+                 'pdf_link', 'revoked_on'];
 
 /* Characters that cannot be confused when read off a printed certificate:
    no 0/O, no 1/I/L. Someone will always have to type one of these by hand. */
@@ -174,9 +174,6 @@ function checkRecords(records) {
     if (r.status === 'issued') {
       if (!r.pdf_link) problems.push(`${where}: marked issued but has no pdf_link`);
       if (!r.issued) problems.push(`${where}: marked issued but has no issued date`);
-      if (r.sha256 && !/^[0-9a-f]{64}$/.test(r.sha256)) {
-        problems.push(`${where}: sha256 does not look like a SHA-256 checksum`);
-      }
     }
     /* Refuse to publish anything the certificate itself does not carry.
        This is the only thing standing between a stray spreadsheet column
@@ -333,11 +330,6 @@ function recordPage(rec) {
       </dl>
       <a class="dl" href="${esc(rec.pdf_link)}" target="_blank" rel="noopener noreferrer">
         Download certificate (PDF)</a>
-      ${rec.sha256 ? `
-      <div class="hash">
-        To confirm a downloaded PDF is unaltered, check its SHA-256 matches:
-        <code class="mono">${esc(rec.sha256)}</code>
-      </div>` : ''}
     </div>`;
 
   return head(`Certificate ${rec.certificate_id} — ${P.name}`, d, meta) + header('verify', d) + `

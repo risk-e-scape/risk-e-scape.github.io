@@ -1,29 +1,29 @@
 # Risk-E-Scape Certificate Verification
 
-Certificate issuing and verification for the DU Risk-E-Scape Certificate Course.
-Batch 1 and Batch 2 are certified together at the close of Batch 2.
+Certificate issuing and verification for the DU Risk-E-Scape Certificate Course. Batch 1 and
+Batch 2 are certified together at the close of Batch 2.
 
-A static site. `build.js` turns the per-batch CSVs in `participants/` plus `config.json` and
-`src/` into `docs/`, which GitHub Pages serves. **Certificate PDFs are not stored here** — they
-live in Google Drive, and each record links to its Drive file.
+Live at **<https://risk-e-scape.github.io/>**.
 
 **Maintaining the participant lists needs no programming — see [HOW-TO.md](HOW-TO.md).**
 
-## How verification works
+## How it works
 
-Each certificate carries a unique ID (`RES-B2-0001-HN24`) and a QR code. Both point at one page:
+A static site. `build.js` turns the per-batch CSVs in `participants/`, plus `config.json` and
+`src/`, into `docs/`, which GitHub Pages serves. Certificate PDFs live in Google Drive, not in
+this repo — each record just links to its Drive file.
+
+Every certificate carries a unique ID and a QR code, both pointing at one page:
 
 ```text
-<baseUrl>/c/RES-B2-0001-HN24/
+https://risk-e-scape.github.io/c/RES-B2-0001-HN24/
 ```
 
-That page is a real, static HTML file — no JavaScript, no backend, nothing to go down. It shows
-the name, batch, dates, modules, a link to the PDF in Drive, and the PDF's SHA-256.
+That page is a plain HTML file — no JavaScript, no backend. A downloadable PDF alone proves
+nothing; anyone can edit a name in one. Trust comes from the record published here.
 
-A downloadable PDF proves nothing on its own; anyone can edit a name in a PDF. Trust comes from
-the record we publish, plus the checksum for the file it points to.
-
-**No name search, no participant list.** A record is reachable only by its certificate ID.
+There is no name search and no participant list page — a record is reachable only by its
+certificate ID.
 
 ## Layout
 
@@ -36,9 +36,9 @@ test.js         checks the built output
 build.bat/.sh   double-click build
 preview.bat/.sh double-click preview
 src/
-  pages/        index.html, course.html — templates with {{TOKENS}} (course renders to course/index.html)
+  pages/        index.html, course.html — templates
   assets/       site.css and logos
-docs/           GENERATED. Never edit by hand; overwritten every build.
+docs/           GENERATED — never edit by hand
 tools/          certificate layout mock, not part of the published site
 ```
 
@@ -46,97 +46,45 @@ tools/          certificate layout mock, not part of the published site
 
 ```bash
 node build.js          # writes docs/
-node test.js --build   # build, then check the output (28 checks)
+node test.js --build   # build, then check the output
 node serve.js          # preview at http://localhost:8000
 ```
 
 Or double-click `build.bat` / `preview.bat` on Windows, `build.sh` / `preview.sh` elsewhere.
 
-Worth checking by hand at <http://localhost:8000/>:
-
-| URL | Expected |
-| --- | --- |
-| `/c/RES-B2-0001-HN24/` | a sample issued record |
-| `/c/RES-B1-0006-ZW68/` | revoked notice, no PDF link |
-| `/c/RES-B2-0007-TQ81/` | 404 — pending records get no page |
-| `/c/RES-B2-0006-WX02/` | injected `<script>` renders as visible text |
-| `/c/RES-B2-0008-FUAZ/` | ID that the build generated from a blank cell |
-| `/verify/` | ID entry form; a malformed ID is rejected before navigating |
-
-## The permanent home
-
-`baseUrl` in `config.json` is encoded into every QR code. Changing it after certificates are
-printed means reprinting them.
-
-**Locked in:** `https://risk-e-scape.github.io`, via the `risk-e-scape` GitHub organisation.
-
-```text
-https://risk-e-scape.github.io/c/RES-B2-0001-HN24/
-```
-
-Repo is renamed and live — confirmed serving from the domain root at
-`https://risk-e-scape.github.io/`, nothing after `.io`.
-
-### Contact email
-
-`config.json` → `programme.contactEmail` is currently `riskescape.du@gmail.com` — a free mailbox,
-not an institutional one. Works, but anyone can register a lookalike Gmail address, so it proves
-nothing about who is behind the site — weaker on a credential than a `du.ac.bd` address would be.
-Treat the password as shared with the coordination office, not held by one person. Worth revisiting
-for `riskescape@du.ac.bd` if the department can create it later — that's a `config.json` edit and
-a rebuild, nothing more.
-
-### Publishing
-
-Settings → Pages → Source: *Deploy from a branch*, branch `main`, folder `/docs`.
-`docs/.nojekyll` is generated so Pages serves the files as-is.
-
-### The fallback that makes any of this survivable
-
-Whatever address is chosen, the certificate prints the **ID and the verification URL as readable
-text** next to the QR code. If the URL ever dies, a human can still read the ID and look it up
-wherever the site lives by then. That text block is not decoration — do not let it be designed
-out.
-
-## ⚠️ Everything in participants/*.csv is public
-
-The CSVs are committed to a public repo and built into the site. Git history keeps it even
-after deletion, so removing a participant later means rewriting history.
-
-- Never add a field the certificate does not itself carry. `build.js` refuses to build if it finds
-  `email`, `phone`, `address`, `nid`, `grade`, `marks` or `dob`.
-- **Participants should be told their name will be published this way**, before certificates are
-  generated. This is a consent question, not a technical one.
-- Choosing not to publish a participant list is now a UX decision, not a privacy control — the data
-  is in the repo either way and can be cloned.
+Publishing: Settings → Pages → *Deploy from a branch*, branch `main`, folder `/docs`.
 
 ## Certificate IDs
 
-Format `RES-B<batch>-<sequence>-<4 random chars>`, e.g. `RES-B2-0001-HN24`.
+Format `RES-B<batch>-<sequence>-<4 random chars>`, e.g. `RES-B2-0001-HN24`. The random suffix
+matters — without it, IDs are sequential and the whole list could be walked.
 
-The random suffix is not decoration: without it IDs are sequential and anyone can walk
-`RES-B2-0001 … 9999` to enumerate every record page.
+`baseUrl` in `config.json` gets encoded into every QR code. Changing it after certificates are
+printed means reprinting them. The certificate also prints the ID and the site address as plain
+text next to the QR, so a record can still be found even if a QR code fails to scan.
 
-## Open prerequisites
+## Everything in participants/*.csv is public
 
-These block printing, and none of them are code.
+Committed to a public repo, built into the site, and kept in git history even after a row is
+deleted.
 
-- [x] **Permanent `baseUrl`** — `risk-e-scape.github.io`, live.
-- [ ] **Batch 1 roster reconciliation** — does a clean list of names and completions exist?
-- [ ] **Eligibility rule** — what earns a certificate (attendance, assignments, both)? `status` is
-      meaningless until this is written down.
-- [ ] **Name confirmation loop** — participants approve their own spelling before generation. The
-      alternative is reprinting.
-- [ ] **Consent** — participants told their name goes into a public repo.
-- [ ] **Certificate sign-off** — logos, signatories, credit hours, wording approved by DU and the
-      consortium.
-- [ ] **Confirm the partner list** — two entries were misread from the banner photo. See
-      `src/assets/logos/README.md`.
-- [ ] **EU disclaimer wording** — check `euFunding.disclaimer` against the grant agreement.
+- Never add a field the certificate doesn't itself carry — `build.js` refuses to build if it
+  finds `email`, `phone`, `address`, `nid`, `grade`, `marks` or `dob`.
+- Participants should be told their name will be published this way, before certificates are
+  generated.
+
+## Still open
+
+- Batch 1 roster reconciliation — does a clean list of names and completions exist?
+- Eligibility rule — what earns a certificate (attendance, assignments, both)?
+- Name confirmation — participants approve their own spelling before generation.
+- Certificate sign-off — signatories, wording, approved by DU and the consortium.
+- `programme.contactEmail` is currently a free Gmail address, not an institutional one —
+  swap for `riskescape@du.ac.bd` if the department can create it (one `config.json` edit).
+- `euFunding.disclaimer` in `config.json` — check the wording against the actual grant agreement.
 
 ## Still to build
 
-- PDF generation from a Slides template (Sheets + Apps Script), writing `pdf_link` and `sha256`
-  back into the CSVs.
-- QR generation pointing at `<baseUrl>/c/<CERT_ID>/`.
-- Participant notification — mail merge telling each person their ID and link.
+- PDF generation from a template, writing `pdf_link` back into the CSVs.
+- QR code generation pointing at `<baseUrl>/c/<CERTIFICATE_ID>/`.
+- Participant notification — telling each person their ID and link.

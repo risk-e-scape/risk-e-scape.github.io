@@ -25,7 +25,6 @@
     "disclaimer": "Funded by the European Union. Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union or the European Education and Culture Executive Agency (EACEA). Neither the European Union nor the granting authority can be held responsible for them."
   },
 
-  "_partners_TODO": "Order matches the Info Day banner, left to right. Confirm the list and the two Nepali partners with the coordination office — an earlier reading of the banner mistook them for Bangladeshi universities.",
   "partners": [
     { "slug": "uoa",   "file": "uoa.jpg",   "name": "National and Kapodistrian University of Athens", "short": "NKUA", "country": "Greece",     "site": "https://en.uoa.gr/" },
     { "slug": "ku",    "file": "ku.svg",    "name": "Kathmandu University",                           "short": "KU",   "country": "Nepal",      "site": "https://ku.edu.np/" },

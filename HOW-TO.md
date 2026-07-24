@@ -21,7 +21,7 @@ Full instructions: `participants/README.md`.
 ### 2. Rebuild the site
 
 **Windows:** double-click `build.bat`.
-**Mac or Linux:** double-click `build.command`, or run `./build.sh` in a terminal.
+**Mac or Linux:** run `./build.sh` in a terminal.
 
 You will see something like:
 
@@ -74,18 +74,8 @@ Everything else lives in two places:
 
 Rebuild afterwards.
 
-## ⚠️ Things that must not change
+## Things that must not change
 
-**A certificate ID that has already been printed.** The QR code on the paper points at it.
-
-**The website address in `config.json` (`baseUrl`).** It is encoded into every QR code. Changing
-it means every printed certificate stops working.
-
-**Anything in `docs/`.** That folder is regenerated from scratch every build, so edits there are
-lost. Change the source files instead.
-
-## If something goes wrong
-
-The build never publishes a broken site — it stops and explains the problem instead. If you get
-stuck, the error message names the file and line number, which is usually enough for whoever set
-this up to fix it in a minute.
+- A certificate ID that has already been printed — the QR code points at it.
+- `baseUrl` in `config.json` — encoded into every QR code already printed.
+- Anything inside `docs/` — regenerated from scratch every build, so edits there are lost.

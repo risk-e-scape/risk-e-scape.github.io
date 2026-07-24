@@ -163,7 +163,6 @@ check('no participant name appears on the home page',
 const sample = byStatus('issued')[0];
 const sp = recordPage(sample.certificate_id);
 check('record page shows the certificate ID', sp.includes(sample.certificate_id), true);
-check('record page shows the SHA-256', sp.includes(sample.sha256), true);
 check('record page is noindex', sp.includes('name="robots" content="noindex"'), true);
 check('record page links the PDF', sp.includes(sample.pdf_link), true);
 
