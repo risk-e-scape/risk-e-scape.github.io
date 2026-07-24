@@ -76,6 +76,30 @@ nav.site a {
 nav.site a:hover { background: var(--bg-alt); }
 nav.site a[aria-current="page"] { background: var(--accent); color: var(--bg); }
 
+/* ---------- mobile nav toggle ----------
+   Checkbox-driven, no JavaScript: the label toggles a hidden checkbox and
+   a CSS sibling selector reads its state. Works on every page, including
+   the certificate record pages, which otherwise ship no script at all. */
+.nav-toggle-input { position: absolute; opacity: 0; pointer-events: none; }
+.nav-toggle {
+  display: none; flex-direction: column; justify-content: center; gap: 4px;
+  width: 34px; height: 34px; padding: 6px; border-radius: 6px; cursor: pointer;
+}
+.nav-toggle:hover { background: var(--bg-alt); }
+.nav-toggle span { display: block; height: 2px; border-radius: 2px; background: var(--fg); }
+.nav-toggle-input:focus-visible ~ .nav-toggle { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+@media (max-width: 680px) {
+  .nav-toggle { display: flex; }
+  nav.site {
+    display: none; position: absolute; top: 100%; left: 0; right: 0;
+    flex-direction: column; gap: 0; background: var(--bg);
+    border-bottom: 1px solid var(--line); padding: 8px 20px 14px;
+  }
+  nav.site a { padding: 12px 4px; border-radius: 0; }
+  .nav-toggle-input:checked ~ nav.site { display: flex; }
+}
+
 /* ---------- hero ---------- */
 .hero {
   background: linear-gradient(180deg, var(--brand-wash), var(--bg));
@@ -155,10 +179,17 @@ footer.site h4 { font-size: 13px; text-transform: uppercase; letter-spacing: .08
 footer.site a { color: var(--fg); }
 footer.site p { margin: 0 0 6px; }
 .eu-block {
-  display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+  display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap;
 }
-.eu-block img { height: 40px; width: auto; }
-.eu-label { font-size: 13px; font-weight: 600; color: var(--fg); max-width: 12ch; line-height: 1.25; }
+/* max-width caps how wide the emblem can render regardless of its source
+   file's own aspect ratio -- a wide logo would otherwise crowd out the
+   label text entirely in a narrow footer column. flex-wrap above lets the
+   label drop to its own line rather than overflow when that happens. */
+.eu-block img { height: 40px; width: auto; max-width: 100%; }
+.eu-label {
+  font-size: 13px; font-weight: 600; color: var(--fg); max-width: 12ch;
+  line-height: 1.25; min-width: 0;
+}
 .eu-disclaimer {
   font-size: 11.5px; line-height: 1.55; color: var(--muted);
   border-top: 1px solid var(--line); padding-top: 16px; margin-top: 4px;

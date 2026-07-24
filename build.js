@@ -237,10 +237,17 @@ function header(current, depth) {
            onerror="this.outerHTML='<span class=\\'r\\'>RISK</span><span class=\\'e\\'>-E-</span><span class=\\'s\\'>SCAPE</span>'">`
     : `<span class="r">RISK</span><span class="e">-E-</span><span class="s">SCAPE</span>`;
 
+  // Checkbox-driven menu, no JavaScript: the hamburger is a <label> toggling
+  // a hidden checkbox that a CSS sibling selector reads. Works identically
+  // on the record pages, which otherwise ship zero script.
   return `
 <header class="site">
   <div class="wrap">
     <a class="wordmark" href="${home}">${mark}</a>
+    <input type="checkbox" id="nav-toggle" class="nav-toggle-input">
+    <label for="nav-toggle" class="nav-toggle" aria-label="Toggle navigation menu">
+      <span></span><span></span><span></span>
+    </label>
     <nav class="site">
       <a href="${home}"${on('home')}>Home</a>
       <a href="${p}course/"${on('course')}>The Course</a>
