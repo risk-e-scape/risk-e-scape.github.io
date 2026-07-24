@@ -447,67 +447,70 @@ function recordPage(rec) {
     : `Certificate ${rec.certificate_id}, issued to ${rec.name} by ${P.name}. ` +
       `Verify its authenticity here.`;
 
-  const card = rec.status === 'revoked' ? `
-    <div class="card revoked">
-      <span class="badge bad">Revoked</span>
-      <h2>This certificate has been revoked</h2>
-      <p>A certificate with this ID was issued but is no longer valid. It should not be
-         accepted as evidence of completion. Contact the course coordination office for
-         details.</p>
-      <dl>
-        <dt>Certificate ID</dt><dd class="mono">${esc(rec.certificate_id)}</dd>
-      </dl>
-    </div>` : `
-    <div class="card">
-      <span class="badge">Verified</span>
-      <div class="name">${esc(rec.name)}</div>
-      <p class="prog">${esc(P.name)}</p>
-      <dl>
-        <dt>Certificate ID</dt><dd class="mono id-copy" data-id="${esc(rec.certificate_id)}">${esc(rec.certificate_id)}</dd>
-        <dt>Batch</dt><dd>Batch ${esc(rec.batch)}</dd>
-        <dt>Issued</dt><dd>${esc(rec.issued)}</dd>
-      </dl>
-      <a class="dl" href="${esc(rec.pdf_link)}" target="_blank" rel="noopener noreferrer">
-        Download certificate (PDF)</a>
-    </div>`;
+  const card = rec.status === 'revoked' ? (
+    '<div class="card revoked">' +
+    '<span class="badge bad">Revoked</span>' +
+    '<h2>This certificate has been revoked</h2>' +
+    '<p>A certificate with this ID was issued but is no longer valid. It should not be' +
+    ' accepted as evidence of completion. Contact the course coordination office for' +
+    ' details.</p>' +
+    '<dl>' +
+    '<dt>Certificate ID</dt><dd class="mono">' + esc(rec.certificate_id) + '</dd>' +
+    '</dl>' +
+    '</div>'
+  ) : (
+    '<div class="card">' +
+    '<span class="badge">Verified</span>' +
+    '<div class="name">' + esc(rec.name) + '</div>' +
+    '<p class="prog">' + esc(P.name) + '</p>' +
+    '<dl>' +
+    '<dt>Certificate ID</dt><dd class="mono id-copy" data-id="' + esc(rec.certificate_id) + '">' + esc(rec.certificate_id) + '</dd>' +
+    '<dt>Batch</dt><dd>Batch ' + esc(rec.batch) + '</dd>' +
+    '<dt>Issued</dt><dd>' + esc(rec.issued) + '</dd>' +
+    '</dl>' +
+    '<a class="dl" href="' + esc(rec.pdf_link) + '" target="_blank" rel="noopener noreferrer">' +
+    'Download certificate (PDF)</a>' +
+    '</div>'
+  );
 
-  const copyScript = rec.status !== 'revoked' ? `
-<script>
-(function () {
-  var ids = document.querySelectorAll('.id-copy');
-  ids.forEach(function (el) {
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'copy-btn';
-    btn.textContent = 'Copy';
-    btn.setAttribute('aria-label', 'Copy certificate ID');
-    btn.style.marginLeft = '8px';
-    btn.style.fontSize = '12px';
-    btn.style.padding = '2px 8px';
-    btn.addEventListener('click', function () {
-      navigator.clipboard.writeText(el.dataset.id).then(function () {
-        var old = btn.textContent;
-        btn.textContent = 'Copied!';
-        setTimeout(function () { btn.textContent = old; }, 1500);
-      });
-    });
-    el.parentNode.insertBefore(btn, el.nextSibling);
-  });
-})();
-</script>` : '';
+const copyScript = rec.status !== 'revoked' ? (
+    '<script>' +
+    '(function () {' +
+    'var ids = document.querySelectorAll(\'.id-copy\');' +
+    'ids.forEach(function (el) {' +
+    'var btn = document.createElement(\'button\');' +
+    'btn.type = \'button\';' +
+    'btn.className = \'copy-btn\';' +
+    'btn.textContent = \'Copy\';' +
+    'btn.setAttribute(\'aria-label\', \'Copy certificate ID\');' +
+    'btn.style.marginLeft = \'8px\';' +
+    'btn.style.fontSize = \'12px\';' +
+    'btn.style.padding = \'2px 8px\';' +
+    'btn.addEventListener(\'click\', function () {' +
+    'navigator.clipboard.writeText(el.dataset.id).then(function () {' +
+    'var old = btn.textContent;' +
+    'btn.textContent = \'Copied!\';' +
+    'setTimeout(function () { btn.textContent = old; }, 1500);' +
+    '});' +
+    '});' +
+    'el.parentNode.insertBefore(btn, el.nextSibling);' +
+    '});' +
+    '})();' +
+    '</script>'
+  ) : '';
 
-  return head(`Certificate ${rec.certificate_id} — ${P.name}`, d, {
-    extra: meta, description, path: `c/${rec.certificate_id}/`
-  }).replace('<html lang="en">', `<html lang="${lang}">`) + header('verify', d) + `
-<div class="verify-wrap">
-  <h1 class="page-title">Certificate record</h1>
-  <p class="prog">Published by ${esc(P.host)}.</p>
-  ${card}
-  <p class="hint foot-note">
-    Checking a different certificate? <a href="${prefix(d)}verify/">Look up another ID</a>.
-    Questions: <a href="mailto:${esc(P.contactEmail)}">${esc(P.contactEmail)}</a>.
-  </p>
-</div>` + footer(d) + copyScript;
+  return head('Certificate ' + rec.certificate_id + ' \u2014 ' + P.name, d, {
+    extra: meta, description, path: 'c/' + rec.certificate_id + '/'
+  }).replace('<html lang="en">', '<html lang="' + lang + '">') + header('verify', d) +
+  '<div class="verify-wrap">' +
+  '<h1 class="page-title">Certificate record</h1>' +
+  '<p class="prog">Published by ' + esc(P.host) + '.</p>' +
+  card +
+  '<p class="hint foot-note">' +
+  'Checking a different certificate? <a href="' + prefix(d) + 'verify/">Look up another ID</a>.' +
+  'Questions: <a href="mailto:' + esc(P.contactEmail) + '">' + esc(P.contactEmail) + '</a>.' +
+  '</p>' +
+  '</div>' + footer(d) + copyScript;
 }
 
 function verifyPage() {
