@@ -231,6 +231,10 @@ ${extra || ''}</head>
 
 function header(current, depth) {
   const p = prefix(depth);
+  // "./" rather than "" at depth 0: a bare href="" would still work (it
+  // means "this document"), but "./" reads as an intentional link on the
+  // homepage's own nav rather than a leftover empty attribute.
+  const home = depth === 0 ? './' : p;
   const on = (page) => (page === current ? ' aria-current="page"' : '');
   const mark = config.brand && config.brand.logo
     ? `<img src="${p}assets/logos/${esc(config.brand.logo)}" alt="RISK-E-SCAPE"
@@ -240,9 +244,9 @@ function header(current, depth) {
   return `
 <header class="site">
   <div class="wrap">
-    <a class="wordmark" href="${p}index.html">${mark}</a>
+    <a class="wordmark" href="${home}">${mark}</a>
     <nav class="site">
-      <a href="${p}index.html"${on('home')}>Home</a>
+      <a href="${home}"${on('home')}>Home</a>
       <a href="${p}course/"${on('course')}>The Course</a>
       <a href="${p}verify/"${on('verify')}>Verify a Certificate</a>
     </nav>
