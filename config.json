@@ -1,0 +1,38 @@
+{
+  "_comment": "Site-wide configuration. baseUrl is the single most important value here: it is what gets encoded into every QR code. Changing it after certificates are printed means reprinting them.",
+
+  "baseUrl": "https://risk-e-scape.github.io",
+  "_baseUrl_NOTE": "Locked in. Only valid if the GitHub repo is renamed to exactly risk-e-scape.github.io under the risk-e-scape org — that exact name is what makes GitHub Pages serve from the domain root instead of a /risk-e-scape/ sub-path. Confirm the rename before generating any QR code.",
+
+  "programme": {
+    "name": "DU Risk-E-Scape Certificate Course",
+    "fullTitle": "Improving Disaster Health and Climate Resilience at the Expanded Environmental Crisis",
+    "project": "RISK-E-SCAPE",
+    "host": "Department of Development Studies, University of Dhaka",
+    "address": "Faculty of Social Sciences, University of Dhaka, Dhaka 1000, Bangladesh",
+    "contactEmail": "devstudies@du.ac.bd"
+  },
+
+  "brand": {
+    "logo": "riskescape.png",
+    "banner": "banner.png"
+  },
+
+  "euFunding": {
+    "file": "eu.png",
+    "label": "Co-funded by the European Union",
+    "_disclaimer_TODO": "Check this wording against the actual grant agreement before publishing. The granting authority named here may be wrong for this project.",
+    "disclaimer": "Funded by the European Union. Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union or the European Education and Culture Executive Agency (EACEA). Neither the European Union nor the granting authority can be held responsible for them."
+  },
+
+  "_partners_TODO": "Order matches the Info Day banner, left to right. Confirm the list and the two Nepali partners with the coordination office — an earlier reading of the banner mistook them for Bangladeshi universities.",
+  "partners": [
+    { "slug": "uoa",   "file": "uoa.jpg",   "name": "National and Kapodistrian University of Athens", "short": "NKUA", "country": "Greece",     "site": "https://en.uoa.gr/" },
+    { "slug": "ku",    "file": "ku.svg",    "name": "Kathmandu University",                           "short": "KU",   "country": "Nepal",      "site": "https://ku.edu.np/" },
+    { "slug": "pu",    "file": "pu.jpg",    "name": "Pokhara University",                             "short": "PU",   "country": "Nepal",      "site": "https://pu.edu.np/" },
+    { "slug": "du",    "file": "du.png",    "name": "University of Dhaka",                            "short": "DU",   "country": "Bangladesh", "site": "https://du.ac.bd/", "host": true },
+    { "slug": "iub",   "file": "iub.png",   "name": "Independent University, Bangladesh",             "short": "IUB",  "country": "Bangladesh", "site": "https://iub.ac.bd/" },
+    { "slug": "unisa", "file": "unisa.png", "name": "University of Salerno",                          "short": "UNISA","country": "Italy",      "site": "https://web.unisa.it/en/home" },
+    { "slug": "ufp",   "file": "ufp.jpg",   "name": "Universidade Fernando Pessoa",                   "short": "UFP",  "country": "Portugal",   "site": "https://www.ufp.pt/" }
+  ]
+}

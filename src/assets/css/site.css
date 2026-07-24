@@ -1,0 +1,258 @@
+/* RISK-E-SCAPE certificate site — shared styles.
+   Palette sampled from the project banner: maroon "RISK", green "SCAPE",
+   pale watercolour wash. */
+
+:root {
+  --brand-red:   #9e2a2b;
+  --brand-green: #3f9142;
+  --brand-dark:  #14532d;
+  --brand-wash:  #eaf3f8;
+  --eu-blue:     #003399;
+
+  --bg:      #ffffff;
+  --bg-alt:  #f7f9fa;
+  --fg:      #1a1d21;
+  --muted:   #5c6470;
+  --line:    #dde2e7;
+  --accent:  var(--brand-dark);
+  --accent-soft: #f0f5f1;
+
+  --warn-bg:   #fdf3f2;
+  --warn-line: #d98b84;
+  --warn-fg:   #8a2b21;
+
+  --radius: 8px;
+  --wrap: 940px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14171a; --bg-alt: #1a1e22; --fg: #e8eaed; --muted: #9aa3ae; --line: #2c3238;
+    --accent: #7fc99a; --accent-soft: #1a2420;
+    --brand-wash: #16242c;
+    --warn-bg: #2a1a18; --warn-line: #7a3b34; --warn-fg: #f0a49b;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 20px; }
+
+/* ---------- mock banner ---------- */
+.mockbar {
+  background: #fff4d6; color: #6b4e00; border-bottom: 1px solid #e0c366;
+  padding: 9px 20px; font-size: 13px; text-align: center;
+}
+.mockbar code { background: rgba(0,0,0,.06); padding: 1px 5px; border-radius: 3px; }
+@media (prefers-color-scheme: dark) {
+  .mockbar { background: #2b2415; color: #e8cd85; border-color: #5e4c1e; }
+}
+
+/* ---------- wordmark ---------- */
+.wordmark {
+  font-weight: 800; letter-spacing: -0.02em; font-size: 20px;
+  text-decoration: none; white-space: nowrap;
+  display: inline-flex; align-items: center;
+}
+.wordmark img { height: 30px; width: auto; display: block; }
+/* The supplied logo is dark-on-transparent, so it disappears against a dark
+   background. Lifting it onto a light plate is safer than recolouring a
+   partner mark. */
+@media (prefers-color-scheme: dark) {
+  .wordmark img { background: #fff; padding: 3px 6px; border-radius: 4px; }
+}
+.wordmark .r { color: var(--brand-red); }
+.wordmark .e { color: var(--brand-green); }
+.wordmark .s { color: var(--brand-dark); }
+@media (prefers-color-scheme: dark) {
+  .wordmark .r { color: #d97070; }
+  .wordmark .s { color: #7fc99a; }
+}
+
+/* ---------- header / nav ---------- */
+header.site {
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+  position: sticky; top: 0; z-index: 10;
+}
+header.site .wrap {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; min-height: 62px; flex-wrap: wrap;
+}
+nav.site { display: flex; gap: 4px; flex-wrap: wrap; }
+nav.site a {
+  color: var(--fg); text-decoration: none; font-size: 14.5px; font-weight: 500;
+  padding: 7px 12px; border-radius: 6px;
+}
+nav.site a:hover { background: var(--bg-alt); }
+nav.site a[aria-current="page"] { background: var(--accent); color: var(--bg); }
+
+/* ---------- hero ---------- */
+.hero {
+  background: linear-gradient(180deg, var(--brand-wash), var(--bg));
+  border-bottom: 1px solid var(--line);
+  padding: 56px 0 44px;
+}
+.hero h1 {
+  font-size: clamp(27px, 4vw, 38px); line-height: 1.2; letter-spacing: -0.02em;
+  margin: 0 0 14px; max-width: 20ch;
+}
+.hero p.lead { font-size: 17px; color: var(--muted); max-width: 60ch; margin: 0 0 26px; }
+.eyebrow {
+  font-size: 12px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--brand-red); font-weight: 700; margin-bottom: 12px;
+}
+@media (prefers-color-scheme: dark) { .eyebrow { color: #d97070; } }
+
+/* ---------- buttons ---------- */
+.btn {
+  display: inline-block; padding: 12px 22px; font-size: 15.5px; font-weight: 600;
+  background: var(--accent); color: var(--bg); border: 1px solid var(--accent);
+  border-radius: var(--radius); text-decoration: none; cursor: pointer;
+  font-family: inherit;
+}
+.btn.ghost { background: transparent; color: var(--fg); border-color: var(--line); }
+
+/* ---------- sections ---------- */
+section { padding: 46px 0; }
+section.alt { background: var(--bg-alt); border-block: 1px solid var(--line); }
+h2.sec { font-size: 22px; margin: 0 0 8px; letter-spacing: -0.01em; }
+p.sec-sub { color: var(--muted); margin: 0 0 26px; max-width: 62ch; }
+
+.grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.tile {
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 18px 20px; background: var(--bg);
+}
+.tile h3 { margin: 0 0 6px; font-size: 16px; }
+.tile p { margin: 0; font-size: 14.5px; color: var(--muted); }
+.tile .num {
+  font-size: 12px; font-weight: 700; color: var(--brand-red);
+  letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px;
+}
+@media (prefers-color-scheme: dark) { .tile .num { color: #d97070; } }
+
+/* ---------- steps ---------- */
+ol.steps { margin: 0; padding-left: 20px; max-width: 62ch; }
+ol.steps li { margin-bottom: 12px; font-size: 15px; }
+
+/* ---------- logo strip ---------- */
+.logos {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 30px 40px; justify-content: center;
+}
+.logos .logo {
+  display: flex; align-items: center; justify-content: center;
+  height: 58px; text-decoration: none;
+}
+.logos .logo img { max-height: 58px; max-width: 140px; width: auto; object-fit: contain; }
+/* Partner marks are supplied dark-on-transparent or dark-on-white and would
+   vanish in dark mode. A light plate keeps every mark legible without
+   recolouring anyone's logo, which their brand rules would not allow. */
+@media (prefers-color-scheme: dark) {
+  .logos .logo img, .eu-block img {
+    background: #fff; padding: 5px 7px; border-radius: 5px;
+  }
+}
+.logo-missing {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 52px; min-width: 82px; padding: 0 14px;
+  border: 1px dashed var(--line); border-radius: 6px;
+  font-size: 13px; font-weight: 700; letter-spacing: .04em; color: var(--muted);
+}
+.logo-missing.eu { border-color: var(--eu-blue); color: var(--eu-blue); }
+@media (prefers-color-scheme: dark) { .logo-missing.eu { border-color: #7f9fe0; color: #9db4e8; } }
+
+/* ---------- footer ---------- */
+footer.site {
+  border-top: 1px solid var(--line); background: var(--bg-alt);
+  padding: 38px 0 30px; font-size: 14px; color: var(--muted);
+}
+footer.site .cols {
+  display: grid; gap: 28px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-bottom: 28px;
+}
+footer.site h4 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--fg); margin: 0 0 10px; }
+footer.site a { color: var(--fg); }
+footer.site p { margin: 0 0 6px; }
+.eu-block {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+}
+.eu-block img { height: 40px; width: auto; }
+.eu-label { font-size: 13px; font-weight: 600; color: var(--fg); max-width: 12ch; line-height: 1.25; }
+.eu-disclaimer {
+  font-size: 11.5px; line-height: 1.55; color: var(--muted);
+  border-top: 1px solid var(--line); padding-top: 16px; margin-top: 4px;
+}
+
+/* ---------- verify page ---------- */
+.verify-wrap { max-width: 620px; margin: 0 auto; padding: 40px 20px 60px; }
+form.verify { display: flex; gap: 8px; margin-bottom: 8px; }
+form.verify input[type=search] {
+  flex: 1; min-width: 0; padding: 11px 13px; font-size: 16px; font-family: inherit;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--bg); color: var(--fg);
+}
+form.verify input[type=search]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.hint { color: var(--muted); font-size: 13px; margin: 0 0 28px; }
+
+.card {
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 20px; margin-bottom: 14px; background: var(--accent-soft);
+}
+.card.plain { background: transparent; }
+.card.revoked, .card.err { background: var(--warn-bg); border-color: var(--warn-line); }
+.badge {
+  display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; padding: 3px 8px; border-radius: 99px;
+  background: var(--accent); color: var(--bg); margin-bottom: 12px;
+}
+.badge.bad { background: var(--warn-fg); }
+.name { font-size: 23px; font-weight: 650; margin: 0 0 4px; letter-spacing: -0.01em; }
+.prog { color: var(--muted); font-size: 14px; margin: 0 0 18px; }
+.card dl {
+  display: grid; grid-template-columns: minmax(110px, auto) 1fr;
+  gap: 7px 16px; margin: 0 0 18px; font-size: 14px;
+}
+.card dt { color: var(--muted); }
+.card dd { margin: 0; }
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px; word-break: break-all;
+}
+a.dl {
+  display: inline-block; padding: 10px 16px; font-weight: 600; font-size: 15px;
+  background: var(--accent); color: var(--bg); border-radius: var(--radius);
+  text-decoration: none;
+}
+.hash {
+  margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line);
+  font-size: 13px; color: var(--muted);
+}
+.hash code { display: block; margin-top: 5px; color: var(--fg); }
+.err h2, .revoked h2 { color: var(--warn-fg); font-size: 17px; margin: 0 0 8px; }
+.err p, .revoked p { margin: 0 0 8px; font-size: 14px; }
+.choice {
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 14px 16px; margin-bottom: 10px;
+}
+.choice .n { font-weight: 600; }
+.choice a { color: var(--accent); font-size: 13px; }
+
+@media (max-width: 560px) {
+  header.site .wrap { min-height: 0; padding-block: 12px; }
+  .hero { padding: 38px 0 32px; }
+  section { padding: 34px 0; }
+}
+
+/* ---------- shared page bits ---------- */
+.page-title { font-size: 24px; margin: 0 0 6px; letter-spacing: -0.01em; }
+.foot-note { margin-top: 30px; padding-top: 18px; border-top: 1px solid var(--line); }

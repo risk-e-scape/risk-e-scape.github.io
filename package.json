@@ -1,0 +1,10 @@
+{
+  "name": "risk-e-scape-certificate-site",
+  "private": true,
+  "description": "Certificate verification site for the DU Risk-E-Scape Certificate Course",
+  "scripts": {
+    "build": "node build.js",
+    "test": "node test.js --build",
+    "start": "node serve.js"
+  }
+}
