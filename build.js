@@ -2,7 +2,7 @@
 /* Builds the certificate site into docs/ for GitHub Pages.
    No dependencies — plain Node.
 
-   Reads every participants/batch-*.csv, writes one page per certificate:
+   Reads participants/participants.csv, writes one page per certificate:
 
        <baseUrl>/c/RES-B2-0001-HN24/
 
@@ -12,13 +12,14 @@
    ID, then saves it back to the file. Existing IDs are never touched —
    once an ID is printed on a certificate it must stay that way forever.
 
-   Edit: config.json, participants/*.csv, src/
+   Edit: config.json, participants/participants.csv, src/
    Never edit: docs/ — it is regenerated from scratch on every build. */
 
 'use strict';
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const ROOT = __dirname;
 const SRC = path.join(ROOT, 'src');
@@ -35,14 +36,64 @@ const COLUMNS = ['certificate_id', 'name', 'issued', 'status', 'pdf_link'];
    no 0/O, no 1/I/L. Someone will always have to type one of these by hand. */
 const ID_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
 
+/* Max attempts when generating a unique certificate ID suffix. */
+const MAX_ID_RETRIES = 10000;
+
+/* Characters that trigger spreadsheet formula execution when a CSV is opened
+   in Excel/Sheets. We prefix them with a zero-width space to neutralize. */
+const FORMULA_PREFIXES = ['=', '+', '-', '@'];
+const ZERO_WIDTH_SPACE = '\u200B';
+
+/* Required config.json fields for validation. */
+const REQUIRED_CONFIG = {
+  baseUrl: 'string',
+  programme: { name: 'string', fullTitle: 'string', project: 'string', host: 'string', address: 'string', contactEmail: 'string' },
+  brand: { logo: 'string', banner: 'string' },
+  euFunding: { file: 'string', label: 'string', disclaimer: 'string' },
+  partners: 'array'
+};
+
+function validateConfig(cfg) {
+  const errors = [];
+  function check(obj, schema, prefix) {
+    for (const [key, type] of Object.entries(schema)) {
+      const fullKey = prefix ? `${prefix}.${key}` : key;
+      if (!(key in obj)) {
+        errors.push(`config.json: missing required field "${fullKey}"`);
+        continue;
+      }
+      const val = obj[key];
+      if (type === 'array') {
+        if (!Array.isArray(val)) errors.push(`config.json: "${fullKey}" must be an array`);
+      } else if (typeof type === 'object') {
+        if (val === null || typeof val !== 'object') errors.push(`config.json: "${fullKey}" must be an object`);
+        else check(val, type, fullKey);
+      } else if (typeof val !== type) {
+        errors.push(`config.json: "${fullKey}" must be a ${type}`);
+      }
+    }
+  }
+  check(cfg, REQUIRED_CONFIG, '');
+  if (errors.length) {
+    console.error('\nConfig validation failed:\n');
+    for (const e of errors) console.error('  * ' + e);
+    console.error('');
+    process.exit(1);
+  }
+}
+
+validateConfig(config);
+
 /* ------------------------------------------------------------------ */
 /* CSV                                                                 */
 /* ------------------------------------------------------------------ */
 
+/* RFC 4180 compliant CSV parser. Handles quoted fields with embedded
+   newlines, escaped quotes (""), and CRLF/LF line endings. */
 function parseCsv(text) {
   const rows = [];
   let row = [], field = '', quoted = false, i = 0;
-  text = text.replace(/^﻿/, '').replace(/\r\n?/g, '\n');
+  text = text.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
 
   while (i < text.length) {
     const c = text[i];
@@ -62,6 +113,14 @@ function parseCsv(text) {
   return rows.filter((r) => r.some((v) => v.trim() !== ''));
 }
 
+/* Neutralize CSV formula injection by prefixing dangerous starters with ZWSP.
+   Applied to the name field before writing to CSV. */
+function sanitizeName(name) {
+  const s = String(name == null ? '' : name);
+  if (FORMULA_PREFIXES.includes(s[0])) return ZERO_WIDTH_SPACE + s;
+  return s;
+}
+
 function csvField(v) {
   v = v == null ? '' : String(v);
   return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
@@ -73,19 +132,30 @@ function toCsv(records) {
   return lines.join('\n') + '\n';
 }
 
+/* Atomically write CSV: write to temp file, then rename. Prevents corruption
+   if the process crashes mid-write or if multiple builds run concurrently. */
+function writeCsvAtomic(filename, records) {
+  const full = path.join(PEOPLE, filename);
+  const tmp = full + '.tmp.' + process.pid + '.' + Date.now();
+  fs.writeFileSync(tmp, toCsv(records), 'utf8');
+  fs.renameSync(tmp, full);
+}
+
 /* ------------------------------------------------------------------ */
 /* participants                                                        */
 /* ------------------------------------------------------------------ */
 
+const PARTICIPANTS_FILE = 'participants.csv';
+
 function batchFiles() {
-  if (!fs.existsSync(PEOPLE)) return [];
-  return fs.readdirSync(PEOPLE)
-    .filter((f) => /^batch-\d+\.csv$/i.test(f))
-    .sort((a, b) => batchNumber(a) - batchNumber(b));
+  const file = path.join(PEOPLE, PARTICIPANTS_FILE);
+  return fs.existsSync(file) ? [PARTICIPANTS_FILE] : [];
 }
 
-function batchNumber(filename) {
-  return parseInt(filename.match(/batch-(\d+)\.csv/i)[1], 10);
+/* Extract batch number from certificate ID (e.g., RES-B1-0001-XXXX -> 1). */
+function batchNumberFromId(certificateId) {
+  const m = /^RES-B(\d+)-\d{4}-[A-Z0-9]{4}$/.exec(certificateId || '');
+  return m ? parseInt(m[1], 10) : 1;
 }
 
 function readBatch(filename) {
@@ -104,10 +174,12 @@ function readBatch(filename) {
   if (problems.length) return { records: [], problems };
 
   const records = rows.slice(1).map((cells, idx) => {
-    const rec = { _file: filename, _line: idx + 2, batch: batchNumber(filename) };
+    const rec = { _file: filename, _line: idx + 2 };
     header.forEach((h, i) => { rec[h] = (cells[i] || '').trim(); });
-    if (!rec.status) rec.status = 'issued';   // blank means issued
+    if (rec.name) rec.name = sanitizeName(rec.name);
+    if (!rec.status) rec.status = 'issued';
     rec.status = rec.status.toLowerCase();
+    rec.batch = batchNumberFromId(rec.certificate_id);
     return rec;
   });
 
@@ -117,36 +189,54 @@ function readBatch(filename) {
 /* Only ever fills blanks. An ID already in the file is left alone, because
    it may already be printed on paper. */
 function assignMissingIds(filename, records) {
-  const batch = batchNumber(filename);
-  const used = new Set(records.map((r) => r.certificate_id).filter(Boolean));
-  let next = 0;
+  // Group records by batch number (extracted from existing IDs or default to 1)
+  const byBatch = new Map();
   for (const r of records) {
-    const m = /^RES-B\d+-(\d{4})-/.exec(r.certificate_id || '');
-    if (m) next = Math.max(next, parseInt(m[1], 10));
+    const b = r.batch || batchNumberFromId(r.certificate_id) || 1;
+    if (!byBatch.has(b)) byBatch.set(b, []);
+    byBatch.get(b).push(r);
   }
 
-  let assigned = 0;
-  for (const r of records) {
-    if (r.certificate_id) continue;
-    let id;
-    do {
-      next++;
-      const seq = String(next).padStart(4, '0');
-      let suffix = '';
-      for (let i = 0; i < 4; i++) {
-        suffix += ID_ALPHABET[Math.floor(Math.random() * ID_ALPHABET.length)];
-      }
-      id = `RES-B${batch}-${seq}-${suffix}`;
-    } while (used.has(id));
-    used.add(id);
-    r.certificate_id = id;
-    assigned++;
+  let totalAssigned = 0;
+  for (const [batch, batchRecords] of byBatch) {
+    const used = new Set(batchRecords.map((r) => r.certificate_id).filter(Boolean));
+    let next = 0;
+    for (const r of batchRecords) {
+      const m = /^RES-B\d+-(\d{4})-/.exec(r.certificate_id || '');
+      if (m) next = Math.max(next, parseInt(m[1], 10));
+    }
+
+    let assigned = 0;
+    for (const r of batchRecords) {
+      if (r.certificate_id) continue;
+      let id;
+      let retries = 0;
+      do {
+        next++;
+        const seq = String(next).padStart(4, '0');
+        let suffix = '';
+        const randomBytes = crypto.randomBytes(4);
+        for (let i = 0; i < 4; i++) {
+          suffix += ID_ALPHABET[randomBytes[i] % ID_ALPHABET.length];
+        }
+        id = `RES-B${batch}-${seq}-${suffix}`;
+        retries++;
+        if (retries > MAX_ID_RETRIES) {
+          throw new Error(`Failed to generate unique certificate ID after ${MAX_ID_RETRIES} attempts`);
+        }
+      } while (used.has(id));
+      used.add(id);
+      r.certificate_id = id;
+      r.batch = batch;
+      assigned++;
+    }
+    totalAssigned += assigned;
   }
 
-  if (assigned) {
-    fs.writeFileSync(path.join(PEOPLE, filename), toCsv(records), 'utf8');
+  if (totalAssigned) {
+    writeCsvAtomic(filename, records);
   }
-  return assigned;
+  return totalAssigned;
 }
 
 function checkRecords(records) {
@@ -329,7 +419,6 @@ function footer(depth) {
         <div class="eu-block">
           <img src="${p}assets/logos/${esc(eu.file)}" alt="${esc(eu.label)}"
                onerror="this.outerHTML='<span class=\\'logo-missing eu\\'>EU</span>'">
-          <span class="eu-label">${esc(eu.label)}</span>
         </div>
       </div>
     </div>
@@ -344,8 +433,14 @@ function footer(depth) {
 /* pages                                                               */
 /* ------------------------------------------------------------------ */
 
+/* Detect if text contains Bangla (Bengali) script for lang attribute. */
+function detectLang(text) {
+  return /[\u0980-\u09FF]/.test(text) ? 'bn' : 'en';
+}
+
 function recordPage(rec) {
   const d = 2;
+  const lang = detectLang(rec.name);
   const meta = '<meta name="robots" content="noindex">\n';
   const description = rec.status === 'revoked'
     ? `Certificate ${rec.certificate_id} has been revoked and is no longer valid.`
@@ -368,7 +463,7 @@ function recordPage(rec) {
       <div class="name">${esc(rec.name)}</div>
       <p class="prog">${esc(P.name)}</p>
       <dl>
-        <dt>Certificate ID</dt><dd class="mono">${esc(rec.certificate_id)}</dd>
+        <dt>Certificate ID</dt><dd class="mono id-copy" data-id="${esc(rec.certificate_id)}">${esc(rec.certificate_id)}</dd>
         <dt>Batch</dt><dd>Batch ${esc(rec.batch)}</dd>
         <dt>Issued</dt><dd>${esc(rec.issued)}</dd>
       </dl>
@@ -376,9 +471,34 @@ function recordPage(rec) {
         Download certificate (PDF)</a>
     </div>`;
 
+  const copyScript = rec.status !== 'revoked' ? `
+<script>
+(function () {
+  var ids = document.querySelectorAll('.id-copy');
+  ids.forEach(function (el) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'copy-btn';
+    btn.textContent = 'Copy';
+    btn.setAttribute('aria-label', 'Copy certificate ID');
+    btn.style.marginLeft = '8px';
+    btn.style.fontSize = '12px';
+    btn.style.padding = '2px 8px';
+    btn.addEventListener('click', function () {
+      navigator.clipboard.writeText(el.dataset.id).then(function () {
+        var old = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(function () { btn.textContent = old; }, 1500);
+      });
+    });
+    el.parentNode.insertBefore(btn, el.nextSibling);
+  });
+})();
+</script>` : '';
+
   return head(`Certificate ${rec.certificate_id} — ${P.name}`, d, {
     extra: meta, description, path: `c/${rec.certificate_id}/`
-  }) + header('verify', d) + `
+  }).replace('<html lang="en">', `<html lang="${lang}">`) + header('verify', d) + `
 <div class="verify-wrap">
   <h1 class="page-title">Certificate record</h1>
   <p class="prog">Published by ${esc(P.host)}.</p>
@@ -387,7 +507,7 @@ function recordPage(rec) {
     Checking a different certificate? <a href="${prefix(d)}verify/">Look up another ID</a>.
     Questions: <a href="mailto:${esc(P.contactEmail)}">${esc(P.contactEmail)}</a>.
   </p>
-</div>` + footer(d);
+</div>` + footer(d) + copyScript;
 }
 
 function verifyPage() {
@@ -452,17 +572,39 @@ function notFoundPage() {
     description: 'No certificate matches this address.'
   }) + header('verify', d) + `
 <div class="verify-wrap">
-  <div class="card err">
+  <div class="card err" id="cert-err">
     <h2>No certificate matches this ID</h2>
     <p>Nothing is on record at this address.</p>
     <p>Check the ID is copied in full, including the four characters after the last dash.
        IDs look like <span class="mono">RES-B2-0001-HN24</span>.</p>
   </div>
-  <p class="hint foot-note">
+  <div class="card err" id="generic-err" style="display:none;">
+    <h2>Page not found</h2>
+    <p>The page you are looking for does not exist.</p>
+  </div>
+  <p class="hint foot-note" id="cert-hint">
     <a href="/verify/">Try another certificate ID</a> ·
     Contact <a href="mailto:${esc(P.contactEmail)}">${esc(P.contactEmail)}</a>
   </p>
-</div>` + footer(d);
+  <p class="hint foot-note" id="generic-hint" style="display:none;">
+    <a href="/">Return to home</a> ·
+    Contact <a href="mailto:${esc(P.contactEmail)}">${esc(P.contactEmail)}</a>
+  </p>
+</div>
+<script>
+(function () {
+  var path = window.location.pathname;
+  var isCertPath = path.startsWith('/c/');
+  document.getElementById('cert-err').style.display = isCertPath ? 'block' : 'none';
+  document.getElementById('generic-err').style.display = isCertPath ? 'none' : 'block';
+  document.getElementById('cert-hint').style.display = isCertPath ? 'block' : 'none';
+  document.getElementById('generic-hint').style.display = isCertPath ? 'none' : 'block';
+  // Update page title
+  document.title = isCertPath
+    ? 'Certificate not found — ${esc(P.name)}'
+    : 'Page not found — ${esc(P.name)}';
+})();
+</script>` + footer(d);
 }
 
 const PAGE_META = {
@@ -506,7 +648,7 @@ function templatePage(file, current, depth) {
 function build() {
   const files = batchFiles();
   if (!files.length) {
-    console.error('No participants/batch-*.csv files found. Nothing to build.');
+    console.error('No participants/participants.csv file found. Nothing to build.');
     process.exit(1);
   }
 
@@ -534,6 +676,11 @@ function build() {
 
   copyDir(path.join(SRC, 'assets'), path.join(OUT, 'assets'));
 
+  // Copy _headers for CSP and security headers (GitHub Pages supports this)
+  if (fs.existsSync(path.join(SRC, '_headers'))) {
+    fs.copyFileSync(path.join(SRC, '_headers'), path.join(OUT, '_headers'));
+  }
+
   write('index.html', templatePage('index.html', 'home', 0));
   write('course/index.html', templatePage('course.html', 'course', 1));
   write('verify/index.html', verifyPage());
@@ -544,11 +691,19 @@ function build() {
   /* Deliberately just these three. Certificate record pages are already
      noindex — listing every /c/<ID>/ here would rebuild the exact public
      roster this site is designed not to have. */
-  const sitemapUrls = ['', 'course/', 'verify/'];
+  const sitemapUrls = [
+    { url: '', lastmod: null },
+    { url: 'course/', lastmod: null },
+    { url: 'verify/', lastmod: null }
+  ];
   write('sitemap.xml',
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-    sitemapUrls.map((u) => `  <url><loc>${esc(config.baseUrl)}/${u}</loc></url>`).join('\n') +
+    sitemapUrls.map((u) => {
+      const loc = `${esc(config.baseUrl)}/${u.url}`;
+      const lastmod = u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : '';
+      return `  <url><loc>${loc}</loc>${lastmod}</url>`;
+    }).join('\n') +
     `\n</urlset>\n`);
 
   const counts = { issued: 0, revoked: 0, pending: 0 };
@@ -580,7 +735,7 @@ function build() {
     for (const f of missing) console.log('    src/assets/logos/' + f);
   }
 
-  if (config._baseUrl_TODO) {
+  if (config._baseUrl_NOTE) {
     console.log('\n  Note: the website address in config.json is still a placeholder.');
     console.log('  It gets printed into every QR code — settle it before printing anything.');
   } else {

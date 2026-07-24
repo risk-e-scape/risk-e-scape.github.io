@@ -11,7 +11,7 @@ installer with the default options. That is the only thing you need to install.
 
 ### 1. Add or change participants
 
-Open `participants/batch-1.csv` or `batch-2.csv` in Excel or Google Sheets. Add a row per person,
+Open `participants/participants.csv` in Excel or Google Sheets. Add a row per person,
 fill in their name and dates, and save as CSV.
 
 Leave the `certificate_id` column empty — it gets filled in for you.
@@ -28,8 +28,7 @@ You will see something like:
 ```text
 Site built.
 
-  batch-1.csv    6 participants
-  batch-2.csv    8 participants
+  participants.csv    14 participants
 
   12 issued, 1 revoked, 1 pending (no page yet)
 
@@ -41,8 +40,8 @@ If something is wrong it stops and tells you exactly which file and line, for ex
 ```text
 Build stopped. Fix these and run again:
 
-  * batch-2.csv line 5: no name
-  * batch-2.csv line 9: marked issued but has no pdf_link
+  * participants.csv line 5: no name
+  * participants.csv line 9: marked issued but has no pdf_link
 ```
 
 Fix the spreadsheet and run it again. Nothing is published until the build succeeds.

@@ -1,0 +1,87 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build site
+        run: npm run build
+
+      - name: Run tests
+        run: npm test
+
+      - name: Verify docs/ exists
+        run: |
+          if [ ! -d "docs" ]; then
+            echo "ERROR: docs/ directory not created"
+            exit 1
+          fi
+
+      - name: Verify core pages exist
+        run: |
+          for f in docs/index.html docs/course/index.html docs/verify/index.html docs/404.html docs/.nojekyll docs/sitemap.xml docs/robots.txt; do
+            if [ ! -f "$f" ]; then
+              echo "ERROR: Missing required file: $f"
+              exit 1
+            fi
+          done
+          echo "All core pages present."
+
+      - name: Verify certificate pages generated
+        run: |
+          if [ -d "docs/c" ]; then
+            COUNT=$(find docs/c -name "index.html" | wc -l)
+            echo "Generated $COUNT certificate pages"
+            if [ "$COUNT" -lt 1 ]; then
+              echo "ERROR: No certificate pages generated"
+              exit 1
+            fi
+          else
+            echo "ERROR: docs/c directory not found"
+            exit 1
+          fi
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: docs/
+          retention-days: 7
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+      - name: Check formatting (basic)
+        run: |
+          # Check for consistent line endings
+          if git ls-files --eol | grep -q "w/crlf"; then
+            echo "WARNING: CRLF line endings detected in tracked files"
+          fi
+          # Check for trailing whitespace
+          if git grep -n "[[:space:]]$" -- "*.js" "*.json" "*.html" "*.css" "*.md" "*.sh" "*.bat" 2>/dev/null; then
+            echo "ERROR: Trailing whitespace found"
+            exit 1
+          fi

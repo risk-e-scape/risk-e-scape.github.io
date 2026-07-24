@@ -38,17 +38,39 @@
   </div>
 </header>
 <div class="verify-wrap">
-  <div class="card err">
+  <div class="card err" id="cert-err">
     <h2>No certificate matches this ID</h2>
     <p>Nothing is on record at this address.</p>
     <p>Check the ID is copied in full, including the four characters after the last dash.
        IDs look like <span class="mono">RES-B2-0001-HN24</span>.</p>
   </div>
-  <p class="hint foot-note">
+  <div class="card err" id="generic-err" style="display:none;">
+    <h2>Page not found</h2>
+    <p>The page you are looking for does not exist.</p>
+  </div>
+  <p class="hint foot-note" id="cert-hint">
     <a href="/verify/">Try another certificate ID</a> ·
     Contact <a href="mailto:riskescape.du@gmail.com">riskescape.du@gmail.com</a>
   </p>
+  <p class="hint foot-note" id="generic-hint" style="display:none;">
+    <a href="/">Return to home</a> ·
+    Contact <a href="mailto:riskescape.du@gmail.com">riskescape.du@gmail.com</a>
+  </p>
 </div>
+<script>
+(function () {
+  var path = window.location.pathname;
+  var isCertPath = path.startsWith('/c/');
+  document.getElementById('cert-err').style.display = isCertPath ? 'block' : 'none';
+  document.getElementById('generic-err').style.display = isCertPath ? 'none' : 'block';
+  document.getElementById('cert-hint').style.display = isCertPath ? 'block' : 'none';
+  document.getElementById('generic-hint').style.display = isCertPath ? 'none' : 'block';
+  // Update page title
+  document.title = isCertPath
+    ? 'Certificate not found — DU Risk-E-Scape Certificate Course'
+    : 'Page not found — DU Risk-E-Scape Certificate Course';
+})();
+</script>
 <footer class="site">
   <div class="wrap">
     <div class="cols">
@@ -68,7 +90,6 @@
         <div class="eu-block">
           <img src="/assets/logos/eu.png" alt="Co-funded by the European Union"
                onerror="this.outerHTML='<span class=\'logo-missing eu\'>EU</span>'">
-          <span class="eu-label">Co-funded by the European Union</span>
         </div>
       </div>
     </div>

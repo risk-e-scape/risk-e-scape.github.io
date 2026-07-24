@@ -1,5 +1,6 @@
 #!/bin/sh
 # Previews the site at http://localhost:8000 - press Ctrl+C to stop.
+set -e
 cd "$(dirname "$0")" || exit 1
 if ! command -v node >/dev/null 2>&1; then
   echo

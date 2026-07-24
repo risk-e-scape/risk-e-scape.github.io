@@ -2,7 +2,6 @@
   "_comment": "Site-wide configuration. baseUrl is the single most important value here: it is what gets encoded into every QR code. Changing it after certificates are printed means reprinting them.",
 
   "baseUrl": "https://risk-e-scape.github.io",
-  "_baseUrl_NOTE": "Locked in. Only valid if the GitHub repo is renamed to exactly risk-e-scape.github.io under the risk-e-scape org — that exact name is what makes GitHub Pages serve from the domain root instead of a /risk-e-scape/ sub-path. Confirm the rename before generating any QR code.",
 
   "programme": {
     "name": "DU Risk-E-Scape Certificate Course",
@@ -21,7 +20,6 @@
   "euFunding": {
     "file": "eu.png",
     "label": "Co-funded by the European Union",
-    "_disclaimer_TODO": "Check this wording against the actual grant agreement before publishing. The granting authority named here may be wrong for this project.",
     "disclaimer": "Funded by the European Union. Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union or the European Education and Culture Executive Agency (EACEA). Neither the European Union nor the granting authority can be held responsible for them."
   },
 

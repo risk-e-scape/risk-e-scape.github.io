@@ -1,12 +1,15 @@
-# Participant lists
+# Participant list
 
-One file per batch: `batch-1.csv`, `batch-2.csv`, and so on. Open in Excel or Google Sheets,
-save as CSV when done.
+Single file: `participants.csv`. Open in Excel or Google Sheets, save as CSV when done.
 
 ## Adding a participant
 
 Add one row. Fill in `name` and `issued`. Leave `certificate_id` empty — the build fills it in
 and saves it back into the file. Set `status` to `pending` until the certificate PDF is ready.
+
+The batch number is derived from the certificate ID (e.g., `RES-B1-...` = Batch 1, `RES-B2-...` = Batch 2).
+When adding new participants for a new batch, leave `certificate_id` blank and the build will assign
+the next sequential number for that batch based on existing IDs.
 
 ## Getting one certificate live
 
@@ -38,11 +41,11 @@ printed on the certificate.
 
 ## Adding a new batch
 
-Copy `batch-2.csv` to `batch-3.csv`, clear the rows, add the new people. The build picks it up
-automatically.
+Add new rows with `certificate_id` blank. The build detects the highest batch number from
+existing IDs and continues numbering from there. No need to create separate files.
 
 ## Keep in mind
 
-Everything in these files is published publicly and stays in the repository's history even after
+Everything in this file is published publicly and stays in the repository's history even after
 a row is deleted. Never add email, phone, address, ID numbers, grades or marks — the build
 refuses to run if it finds those.

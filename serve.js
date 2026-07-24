@@ -10,7 +10,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const ROOT = path.join(__dirname, 'docs');
+const ROOT = path.resolve(__dirname, 'docs');
 const PORT = Number(process.argv[2]) || 8000;
 
 const TYPES = {
@@ -39,10 +39,13 @@ http.createServer((req, res) => {
     res.writeHead(400); res.end('Bad request'); return;
   }
 
-  let file = path.join(ROOT, rel);
-  // Refuse anything that resolves outside docs/.
-  if (!file.startsWith(ROOT)) { res.writeHead(403); res.end('Forbidden'); return; }
+  // Resolve the requested path and ensure it's within ROOT
+  const requestedPath = path.resolve(ROOT, rel);
+  if (!requestedPath.startsWith(ROOT + path.sep) && requestedPath !== ROOT) {
+    res.writeHead(403); res.end('Forbidden'); return;
+  }
 
+  let file = requestedPath;
   if (fs.existsSync(file) && fs.statSync(file).isDirectory()) {
     file = path.join(file, 'index.html');
   }

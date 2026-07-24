@@ -9,7 +9,7 @@ Live at **<https://risk-e-scape.github.io/>**.
 
 ## How it works
 
-A static site. `build.js` turns the per-batch CSVs in `participants/`, plus `config.json` and
+A static site. `build.js` turns `participants/participants.csv`, plus `config.json` and
 `src/`, into `docs/`, which GitHub Pages serves. Certificate PDFs live in Google Drive, not in
 this repo — each record just links to its Drive file.
 
@@ -28,7 +28,7 @@ certificate ID.
 ## Layout
 
 ```text
-participants/   batch-1.csv, batch-2.csv, ... — the participant lists
+participants/   participants.csv — the participant list
 config.json     course name, contacts, partner logos, EU funding, baseUrl
 build.js        generates docs/
 serve.js        local preview server
@@ -39,7 +39,6 @@ src/
   pages/        index.html, course.html — templates
   assets/       site.css and logos
 docs/           GENERATED — never edit by hand
-tools/          certificate layout mock, not part of the published site
 ```
 
 ## Build and test
@@ -63,7 +62,7 @@ matters — without it, IDs are sequential and the whole list could be walked.
 printed means reprinting them. The certificate also prints the ID and the site address as plain
 text next to the QR, so a record can still be found even if a QR code fails to scan.
 
-## Everything in participants/*.csv is public
+## Everything in participants/participants.csv is public
 
 Committed to a public repo, built into the site, and kept in git history even after a row is
 deleted.

@@ -5,10 +5,8 @@ where node >nul 2>nul
 if errorlevel 1 (
   echo.
   echo Node.js is not installed.
-  echo Install it from https://nodejs.org ^(choose the LTS version^), then run this again.
+  echo Install it from https://nodejs.org (choose the LTS version), then run this again.
   echo.
-  pause
   exit /b 1
 )
 node serve.js
-pause

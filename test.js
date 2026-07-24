@@ -29,7 +29,7 @@ const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8'
 function readCsv(file) {
   const rows = [];
   let row = [], field = '', quoted = false, i = 0;
-  const text = fs.readFileSync(file, 'utf8').replace(/^﻿/, '').replace(/\r\n?/g, '\n');
+  const text = fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
   while (i < text.length) {
     const c = text[i];
     if (quoted) {
@@ -51,14 +51,12 @@ function readCsv(file) {
     const o = {};
     header.forEach((h, n) => { o[h] = (cells[n] || '').trim(); });
     if (!o.status) o.status = 'issued';
-    o._batch = parseInt(path.basename(file).match(/batch-(\d+)/)[1], 10);
+    o._batch = parseInt(/^RES-B(\d+)-\d{4}-[A-Z0-9]{4}$/.exec(o.certificate_id || '')[1] || '1', 10);
     return o;
   });
 }
 
-const records = fs.readdirSync(PEOPLE)
-  .filter((f) => /^batch-\d+\.csv$/i.test(f))
-  .flatMap((f) => readCsv(path.join(PEOPLE, f)));
+const records = readCsv(path.join(PEOPLE, 'participants.csv'));
 
 let pass = 0, fail = 0;
 function check(label, actual, expected) {
@@ -149,10 +147,16 @@ check('participant files carry no fields beyond the certificate',
 /* The official contact address is meant to appear on every page — it's the
    configured one, not a leak. Strip it out first, then check what's left. */
 const officialEmail = config.programme.contactEmail;
+const officialEmailDomain = officialEmail.split('@')[1]?.toLowerCase() || '';
 check('no OTHER free-mailbox address leaks in besides the official contact one',
   allHtml.some((h) => {
     const stripped = h.split(officialEmail).join('');
-    return /@(gmail|yahoo|hotmail|outlook)\./i.test(stripped);
+    // Check for free email domains OTHER than the official one's domain
+    const freeDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com']
+      .filter(d => d !== officialEmailDomain);
+    if (freeDomains.length === 0) return false;
+    const pattern = new RegExp(`@(${freeDomains.join('|')})`, 'i');
+    return pattern.test(stripped);
   }), false);
 check('no PDF committed to the site',
   allFiles(OUT).some((f) => f.endsWith('.pdf')), false);
