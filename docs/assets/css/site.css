@@ -196,7 +196,7 @@ footer.site p { margin: 0 0 6px; }
 }
 
 /* ---------- verify page ---------- */
-.verify-wrap { max-width: 620px; margin: 0 auto; padding: 40px 20px 60px; }
+.verify-wrap { max-width: var(--wrap); margin: 0 auto; padding: 40px 20px 60px; }
 form.verify { display: flex; gap: 8px; margin-bottom: 8px; }
 form.verify input[type=search] {
   flex: 1; min-width: 0; padding: 11px 13px; font-size: 16px; font-family: inherit;
