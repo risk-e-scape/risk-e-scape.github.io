@@ -1,3 +1,0 @@
-User-agent: *
-Allow: /
-Sitemap: https://risk-e-scape.github.io/sitemap.xml
