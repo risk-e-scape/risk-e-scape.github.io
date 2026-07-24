@@ -1,10 +1,15 @@
-name: Build and Test
+name: Build, Test and Deploy
 
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   build-and-test:
@@ -59,12 +64,10 @@ jobs:
             exit 1
           fi
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: site
           path: docs/
-          retention-days: 7
 
   lint:
     runs-on: ubuntu-latest
@@ -76,12 +79,22 @@ jobs:
       - run: npm ci
       - name: Check formatting (basic)
         run: |
-          # Check for consistent line endings
           if git ls-files --eol | grep -q "w/crlf"; then
             echo "WARNING: CRLF line endings detected in tracked files"
           fi
-          # Check for trailing whitespace
           if git grep -n "[[:space:]]$" -- "*.js" "*.json" "*.html" "*.css" "*.md" "*.sh" "*.bat" 2>/dev/null; then
             echo "ERROR: Trailing whitespace found"
             exit 1
           fi
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [build-and-test, lint]
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

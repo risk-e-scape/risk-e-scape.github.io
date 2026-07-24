@@ -48,7 +48,8 @@ Fix the spreadsheet and run it again. Nothing is published until the build succe
 
 ### 3. Publish
 
-Commit and push the changes. GitHub Pages picks them up within a minute or two.
+Commit and push the changes. The build workflow in `.github/workflows/build.yml` runs
+automatically — it builds the site, runs tests, and deploys to GitHub Pages.
 
 If you are not comfortable with Git, ask whoever set the repository up to do this step, or use
 GitHub Desktop: it shows the changed files, you write a short note, and click push.

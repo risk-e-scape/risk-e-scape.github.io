@@ -51,7 +51,7 @@ node serve.js          # preview at http://localhost:8000
 
 Or double-click `build.bat` / `preview.bat` on Windows, `build.sh` / `preview.sh` elsewhere.
 
-Publishing: Settings → Pages → *Deploy from a branch*, branch `main`, folder `/docs`.
+Publishing: Settings → Pages → select *GitHub Actions*. The build workflow in `.github/workflows/build.yml` automatically builds, tests, and deploys to Pages on every push to `main`.
 
 ## Certificate IDs
 

@@ -1,3 +1,5 @@
-.DS_Store
-Thumbs.db
+# Build output — regenerated on each build, workflow deploys from artifact, not from repo
+/docs/
+
+# Node
 node_modules/
