@@ -1,7 +1,7 @@
-certificate_id,name,completed,issued,status,pdf_link,revoked_on
-RES-B1-0001-7K3D,Test Participant One,2026-03-14,2026-08-01,issued,https://drive.google.com/file/d/DUMMY_FILE_ID_0001/view,
-RES-B1-0002-QM52,Test Participant Two,2026-03-14,2026-08-01,issued,https://drive.google.com/file/d/DUMMY_FILE_ID_0002/view,
-RES-B1-0003-XB89,টেস্ট অংশগ্রহণকারী তিন,2026-03-14,2026-08-01,issued,https://drive.google.com/file/d/DUMMY_FILE_ID_0003/view,
-RES-B1-0004-LP31,Test Participant With An Extremely Long Sample Name For Layout Checking,2026-03-14,2026-08-01,issued,https://drive.google.com/file/d/DUMMY_FILE_ID_0004/view,
-RES-B1-0005-VT47,Test Participant Five,2026-03-14,2026-08-01,issued,https://drive.google.com/file/d/DUMMY_FILE_ID_0005/view,
-RES-B1-0006-ZW68,Test Participant Six,2026-03-14,2026-08-01,revoked,,2026-09-12
+certificate_id,name,issued,status,pdf_link
+RES-B1-0001-7K3D,Test Participant One,2026-08-01,issued,https://drive.google.com/file/d/DUMMY_FILE_ID_0001/view
+RES-B1-0002-QM52,Test Participant Two,2026-08-01,issued,https://drive.google.com/file/d/DUMMY_FILE_ID_0002/view
+RES-B1-0003-XB89,টেস্ট অংশগ্রহণকারী তিন,2026-08-01,issued,https://drive.google.com/file/d/DUMMY_FILE_ID_0003/view
+RES-B1-0004-LP31,Test Participant With An Extremely Long Sample Name For Layout Checking,2026-08-01,issued,https://drive.google.com/file/d/DUMMY_FILE_ID_0004/view
+RES-B1-0005-VT47,Test Participant Five,2026-08-01,issued,https://drive.google.com/file/d/DUMMY_FILE_ID_0005/view
+RES-B1-0006-ZW68,Test Participant Six,2026-08-01,revoked,

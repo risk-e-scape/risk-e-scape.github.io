@@ -29,8 +29,7 @@ const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8'
 const P = config.programme;
 
 const ID_RE = /^RES-B\d+-\d{4}-[A-Z0-9]{4}$/;
-const COLUMNS = ['certificate_id', 'name', 'completed', 'issued', 'status',
-                 'pdf_link', 'revoked_on'];
+const COLUMNS = ['certificate_id', 'name', 'issued', 'status', 'pdf_link'];
 
 /* Characters that cannot be confused when read off a printed certificate:
    no 0/O, no 1/I/L. Someone will always have to type one of these by hand. */
@@ -315,7 +314,6 @@ function recordPage(rec) {
          details.</p>
       <dl>
         <dt>Certificate ID</dt><dd class="mono">${esc(rec.certificate_id)}</dd>
-        ${rec.revoked_on ? `<dt>Revoked on</dt><dd>${esc(rec.revoked_on)}</dd>` : ''}
       </dl>
     </div>` : `
     <div class="card">
@@ -325,7 +323,6 @@ function recordPage(rec) {
       <dl>
         <dt>Certificate ID</dt><dd class="mono">${esc(rec.certificate_id)}</dd>
         <dt>Batch</dt><dd>Batch ${esc(rec.batch)}</dd>
-        ${rec.completed ? `<dt>Completed</dt><dd>${esc(rec.completed)}</dd>` : ''}
         <dt>Issued</dt><dd>${esc(rec.issued)}</dd>
       </dl>
       <a class="dl" href="${esc(rec.pdf_link)}" target="_blank" rel="noopener noreferrer">

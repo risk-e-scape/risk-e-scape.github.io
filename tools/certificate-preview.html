@@ -162,7 +162,6 @@
       <p class="c-desc">
         has successfully completed the certificate course in disaster response, humanitarian
         medicine, displacement, leadership and community engagement.
-        <br>Completed <span id="c-completed">—</span>.
       </p>
     </div>
 
@@ -325,7 +324,6 @@ Promise.all(
       n.textContent = r.name;
       n.classList.toggle('long', r.name.length > 35);
       document.getElementById('c-id').textContent = r.certificate_id;
-      document.getElementById('c-completed').textContent = r.completed;
       document.getElementById('c-issued').textContent = r.issued;
     }
     sel.addEventListener('change', function () { draw(this.value); });

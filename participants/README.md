@@ -5,9 +5,8 @@ save as CSV when done.
 
 ## Adding a participant
 
-Add one row. Fill in `name`, `completed`, `issued`. Leave `certificate_id` empty — the build
-fills it in and saves it back into the file. Set `status` to `pending` until the certificate
-PDF is ready.
+Add one row. Fill in `name` and `issued`. Leave `certificate_id` empty — the build fills it in
+and saves it back into the file. Set `status` to `pending` until the certificate PDF is ready.
 
 ## Getting one certificate live
 
@@ -29,11 +28,9 @@ printed on the certificate.
 | --- | --- |
 | `certificate_id` | Leave blank for new people. Never change one that's already printed. |
 | `name` | As it appears on the certificate |
-| `completed` | Date the person finished the course |
 | `issued` | Date on the certificate |
 | `status` | `issued`, `pending` or `revoked`. Blank means `issued`. |
 | `pdf_link` | Google Drive link to the certificate PDF |
-| `revoked_on` | Only for revoked certificates: the date it was withdrawn |
 
 - **`pending`** — no page is created. The ID behaves exactly like an unknown one.
 - **`revoked`** — the page stays up and says the certificate was withdrawn, rather than
