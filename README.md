@@ -72,6 +72,10 @@ deleted.
 - Participants should be told their name will be published this way, before certificates are
   generated.
 
+## License
+
+MIT &copy; 2026 Md Mohsin Hossain. See [LICENSE](LICENSE).
+
 ## Still open
 
 - Batch 1 roster reconciliation — does a clean list of names and completions exist?

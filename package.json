@@ -1,6 +1,7 @@
 {
   "name": "risk-e-scape-certificate-site",
   "private": true,
+  "license": "MIT",
   "description": "Certificate verification site for the DU Risk-E-Scape Certificate Course",
   "engines": {
     "node": ">=20.0.0"

@@ -417,7 +417,7 @@ function footer(depth) {
       <div>
         <h4>Funding</h4>
         <div class="eu-block">
-          <img src="${p}assets/logos/${esc(eu.file)}" alt="${esc(eu.label)}"
+          <img src="${p}assets/logos/${esc(eu.file)}" alt=""
                onerror="this.outerHTML='<span class=\\'logo-missing eu\\'>EU</span>'">
         </div>
       </div>
