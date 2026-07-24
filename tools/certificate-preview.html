@@ -335,7 +335,7 @@ Promise.all(
     console.error(err);
     document.querySelector('.controls').innerHTML =
       '<p><strong>Could not load config.json or the participant CSVs.</strong> This page needs ' +
-      'a different server than the main site preview. From <code>certificate-site/</code>, run ' +
+      'a different server than the main site preview. From the repo root, run ' +
       '<code>node tools/serve.js</code>, then open ' +
       '<code>http://localhost:8001/tools/certificate-preview.html</code>.</p>';
   });

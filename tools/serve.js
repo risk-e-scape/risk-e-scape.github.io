@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* Serves the whole certificate-site/ folder — needed only for the design
+/* Serves this whole repo folder — needed only for the design
    tools in here (certificate-preview.html), which read config.json,
    participants/*.csv and src/assets/ directly, none of which live inside
    docs/. The real site preview is ../serve.js, which mirrors docs/ the
