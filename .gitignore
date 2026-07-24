@@ -1,5 +1,10 @@
 # Build output — regenerated on each build, workflow deploys from artifact, not from repo
 /docs/
 
+# Private certificate roster and generated QR/verification materials
+/participants/participants.csv
+/certificate-materials/
+/certificate-pdfs/
+
 # Node
 node_modules/

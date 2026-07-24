@@ -3,6 +3,7 @@ name: Build, Test and Deploy
 on:
   push:
     branches: [main]
+  workflow_dispatch:
   pull_request:
     branches: [main]
 
@@ -14,6 +15,8 @@ permissions:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    env:
+      PARTICIPANTS_CSV: ${{ secrets.PARTICIPANTS_CSV }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -27,10 +30,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build site
-        run: npm run build
+      - name: Load private participant roster
+        if: env.PARTICIPANTS_CSV != ''
+        run: |
+          mkdir -p participants
+          printf '%s\n' "$PARTICIPANTS_CSV" > participants/participants.csv
 
-      - name: Run tests
+      - name: Build and run tests
         run: npm test
 
       - name: Verify docs/ exists
@@ -42,7 +48,7 @@ jobs:
 
       - name: Verify core pages exist
         run: |
-          for f in docs/index.html docs/course/index.html docs/verify/index.html docs/404.html docs/.nojekyll docs/sitemap.xml docs/robots.txt; do
+          for f in docs/index.html docs/course/index.html docs/privacy/index.html docs/verify/index.html docs/404.html docs/.nojekyll docs/sitemap.xml docs/robots.txt; do
             if [ ! -f "$f" ]; then
               echo "ERROR: Missing required file: $f"
               exit 1
@@ -50,19 +56,14 @@ jobs:
           done
           echo "All core pages present."
 
-      - name: Verify certificate pages generated
+      - name: Report certificate pages generated
         run: |
           if [ -d "docs/c" ]; then
             COUNT=$(find docs/c -name "index.html" | wc -l)
-            echo "Generated $COUNT certificate pages"
-            if [ "$COUNT" -lt 1 ]; then
-              echo "ERROR: No certificate pages generated"
-              exit 1
-            fi
           else
-            echo "ERROR: docs/c directory not found"
-            exit 1
+            COUNT=0
           fi
+          echo "Generated $COUNT certificate pages"
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
@@ -88,7 +89,7 @@ jobs:
           fi
 
   deploy:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: (github.ref == 'refs/heads/main' && github.event_name == 'push') || github.event_name == 'workflow_dispatch'
     needs: [build-and-test, lint]
     runs-on: ubuntu-latest
     environment:

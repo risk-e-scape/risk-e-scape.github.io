@@ -1,15 +1,17 @@
 # Participant list
 
-Single file: `participants.csv`. Open in Excel or Google Sheets, save as CSV when done.
+The live roster is `participants.csv`. It is intentionally ignored by Git because names and
+certificate links must not be stored in this public repository. Copy `participants.example.csv`
+to `participants.csv`, then open it in Excel or Google Sheets and save it as CSV when done.
 
 ## Adding a participant
 
-Add one row. Fill in `name` and `issued`. Leave `certificate_id` empty — the build fills it in
-and saves it back into the file. Set `status` to `pending` until the certificate PDF is ready.
+Add one row. Fill in `batch` and `name`. Leave `certificate_id` empty — the build fills it in
+and saves it back into the private file. Set `status` to `pending` until the certificate PDF is
+ready. Add the issue date only when the certificate is actually issued.
 
-The batch number is derived from the certificate ID (e.g., `RES-B1-...` = Batch 1, `RES-B2-...` = Batch 2).
-When adding new participants for a new batch, leave `certificate_id` blank and the build will assign
-the next sequential number for that batch based on existing IDs.
+The batch number must be explicit for a new record. Existing records are also checked to ensure the
+`batch` column matches the batch encoded in IDs such as `RES-B2-...`.
 
 ## Getting one certificate live
 
@@ -17,18 +19,22 @@ The certificate ID has to exist **before** the PDF is designed, since the ID and
 printed on the certificate.
 
 1. Add the row, `certificate_id` blank, `status` set to `pending`.
-2. Run the build (see `../HOW-TO.md`). It writes a new ID into the CSV, e.g. `RES-B2-0009-7MXQ`.
-3. Design the certificate PDF using that ID: the name, the ID as readable text, and a QR code
-   pointing at `<baseUrl>/c/<the ID>/` (`baseUrl` is in `../config.json`).
-4. Upload the PDF to the shared Drive folder. **Set sharing to "Anyone with the link — Viewer"**
-   — otherwise the download button only works for whoever uploaded it.
-5. Paste the share link into `pdf_link`, set `status` to `issued` (or leave it blank).
-6. Run the build again. The record goes live at `<baseUrl>/c/<the ID>/`.
+2. Run `npm run refresh-drafts` (see `../HOW-TO.md`). It writes a new ID into the CSV when needed
+   and generates a PNG and SVG QR code, verification-links spreadsheet and watermarked draft PDF.
+3. Review the generated watermarked draft PDF, then design or revise the approved certificate
+   using that ID, QR code and verification URL. The name and ID must also appear as readable text.
+4. After officials approve the design and wording, run `npm run generate-certificates` to create the
+   final PDF. Do not upload a draft PDF.
+5. Upload the final PDF to the shared Drive folder. **Set sharing to "Anyone with the link — Viewer"**
+   — otherwise the verification link only works for whoever uploaded it.
+6. Paste the share link into `pdf_link`, enter the issue date, set `status` to `issued`, then run
+   `npm test` and `npm run deploy-roster`. The record goes live at `<baseUrl>/c/<the ID>/`.
 
 ## The columns
 
 | Column | Meaning |
 | --- | --- |
+| `batch` | Required batch number, such as `2`. |
 | `certificate_id` | Leave blank for new people. Never change one that's already printed. |
 | `name` | As it appears on the certificate |
 | `issued` | Date on the certificate |
@@ -41,11 +47,18 @@ printed on the certificate.
 
 ## Adding a new batch
 
-Add new rows with `certificate_id` blank. The build detects the highest batch number from
-existing IDs and continues numbering from there. No need to create separate files.
+Add new rows with the new number in `batch` and leave `certificate_id` blank. The build continues
+the sequence within that explicit batch. No separate file is needed.
 
 ## Keep in mind
 
-Everything in this file is published publicly and stays in the repository's history even after
-a row is deleted. Never add email, phone, address, ID numbers, grades or marks — the build
-refuses to run if it finds those.
+Each issued row becomes a public certificate page, so obtain the participant's agreement before
+issuing it. The private CSV itself must never be committed. Never add email, phone, address, ID
+numbers, grades, marks or dates of birth — the build refuses to run if it finds those.
+
+Keep the generated QR files and timestamped draft PDFs in the ignored local folders for coordinator
+review. They are not uploaded to the website. Run `npm run deploy-roster` to validate the complete
+CSV, update the repository Actions secret `PARTICIPANTS_CSV` and start deployment automatically.
+The workflow writes the secret only into the temporary build runner. Keep a protected backup because
+GitHub does not allow secrets to be read back. The command warns at 35 KB and stops at 45 KB because
+Actions secrets are limited to 48 KB.

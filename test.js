@@ -14,6 +14,7 @@ const { execFileSync } = require('child_process');
 const ROOT = __dirname;
 const OUT = path.join(ROOT, 'docs');
 const PEOPLE = path.join(ROOT, 'participants');
+const PARTICIPANTS_CSV = path.join(PEOPLE, 'participants.csv');
 
 if (process.argv.includes('--build')) {
   execFileSync(process.execPath, [path.join(ROOT, 'build.js')], { stdio: 'inherit' });
@@ -51,12 +52,13 @@ function readCsv(file) {
     const o = {};
     header.forEach((h, n) => { o[h] = (cells[n] || '').trim(); });
     if (!o.status) o.status = 'issued';
-    o._batch = parseInt(/^RES-B(\d+)-\d{4}-[A-Z0-9]{4}$/.exec(o.certificate_id || '')[1] || '1', 10);
+    const idMatch = /^RES-B(\d+)-\d{4}-[A-Z0-9]{4}$/.exec(o.certificate_id || '');
+    o._batch = idMatch ? parseInt(idMatch[1], 10) : null;
     return o;
   });
 }
 
-const records = readCsv(path.join(PEOPLE, 'participants.csv'));
+const records = fs.existsSync(PARTICIPANTS_CSV) ? readCsv(PARTICIPANTS_CSV) : [];
 
 let pass = 0, fail = 0;
 function check(label, actual, expected) {
@@ -87,8 +89,34 @@ function allFiles(dir) {
   })(dir);
   return out;
 }
-const allHtml = allFiles(OUT).filter((f) => f.endsWith('.html'))
-  .map((f) => fs.readFileSync(f, 'utf8'));
+const htmlPages = allFiles(OUT).filter((f) => f.endsWith('.html'))
+  .map((file) => ({
+    file: path.relative(OUT, file).split(path.sep).join('/'),
+    html: fs.readFileSync(file, 'utf8')
+  }));
+const allHtml = htmlPages.map((page) => page.html);
+
+function openingTagWithId(html, tagName, id) {
+  return html.match(new RegExp(`<${tagName}\\b[^>]*\\bid=["']${id}["'][^>]*>`, 'i'))?.[0] || '';
+}
+
+function hasSkipLink(html) {
+  return [...html.matchAll(/<a\b[^>]*>/gi)].some((match) => {
+    const tag = match[0];
+    const target = /\bhref=["']#([^"']+)["']/i.exec(tag)?.[1];
+    return /\bclass=["'][^"']*\bskip(?:-link)?\b[^"']*["']/i.test(tag) &&
+      target && new RegExp(`\\bid=["']${target}["']`, 'i').test(html);
+  });
+}
+
+function pngDimensions(file) {
+  if (!fs.existsSync(file)) return null;
+  const data = fs.readFileSync(file);
+  const signature = '89504e470d0a1a0a';
+  if (data.length < 24 || data.subarray(0, 8).toString('hex') !== signature ||
+      data.subarray(12, 16).toString('ascii') !== 'IHDR') return null;
+  return { width: data.readUInt32BE(16), height: data.readUInt32BE(20) };
+}
 
 /* --- what gets published -------------------------------------------- */
 
@@ -99,7 +127,7 @@ check('a page exists for every revoked record',
 check('NO page exists for a pending record',
   byStatus('pending').every((r) => recordPage(r.certificate_id) === null), true);
 check('core pages built',
-  ['index.html', 'course/index.html', 'verify/index.html', '404.html', '.nojekyll']
+  ['index.html', 'course/index.html', 'privacy/index.html', 'verify/index.html', '404.html', '.nojekyll']
     .every((f) => fs.existsSync(path.join(OUT, f))), true);
 
 /* --- certificate IDs -------------------------------------------------- */
@@ -111,9 +139,26 @@ check('IDs are unique across all batches',
 check('ID batch number matches the file it is in',
   records.every((r) => r.certificate_id.startsWith('RES-B' + r._batch + '-')), true);
 
+/* --- production data hygiene ----------------------------------------- */
+
+const placeholderName = /\b(?:test|testing|demo|sample|dummy|placeholder|example|fake)\b/i;
+check('production names contain no obvious test/demo placeholders',
+  records.filter((r) => placeholderName.test(r.name)).map((r) => r.certificate_id), []);
+check('production CSV contains no script tags',
+  records.filter((r) => Object.values(r).some((value) => /<\/?script\b/i.test(String(value))))
+    .map((r) => r.certificate_id), []);
+check('production CSV contains no DUMMY_FILE_ID placeholders',
+  records.filter((r) => Object.values(r).some((value) => /DUMMY_FILE_ID/i.test(String(value))))
+    .map((r) => r.certificate_id), []);
+const today = new Date().toISOString().slice(0, 10);
+check('issued dates are not in the future',
+  records.filter((r) => r.issued && /^\d{4}-\d{2}-\d{2}$/.test(r.issued) && r.issued > today)
+    .map((r) => r.certificate_id), []);
+
 /* --- escaping --------------------------------------------------------- */
 
-const xss = records.find((r) => r.name.includes('<script>'));
+const namedPages = byStatus('issued');
+const xss = namedPages.find((r) => r.name.includes('<script>'));
 if (xss) {
   check('injected markup is escaped, not emitted',
     recordPage(xss.certificate_id).includes('<script>alert('), false);
@@ -121,19 +166,19 @@ if (xss) {
     recordPage(xss.certificate_id).includes('&lt;script&gt;'), true);
 }
 
-const apostrophe = records.find((r) => r.name.includes("O'Sullivan"));
+const apostrophe = namedPages.find((r) => r.name.includes("O'Sullivan"));
 if (apostrophe) {
   check('apostrophe in a name is escaped',
     recordPage(apostrophe.certificate_id).includes('O&#39;Sullivan'), true);
 }
 
-const bangla = records.find((r) => /[ঀ-৿]/.test(r.name));
+const bangla = namedPages.find((r) => /[ঀ-৿]/.test(r.name));
 if (bangla) {
   check('Bangla-script name is emitted intact',
     recordPage(bangla.certificate_id).includes(bangla.name), true);
 }
 
-const comma = records.find((r) => r.name.includes(','));
+const comma = namedPages.find((r) => r.name.includes(','));
 if (comma) {
   check('a name containing a comma survives the CSV round trip',
     recordPage(comma.certificate_id).includes(comma.name), true);
@@ -179,10 +224,12 @@ check('no participant name appears on the home page',
 /* --- record page contents ---------------------------------------------- */
 
 const sample = byStatus('issued')[0];
-const sp = recordPage(sample.certificate_id);
-check('record page shows the certificate ID', sp.includes(sample.certificate_id), true);
-check('record page is noindex', sp.includes('name="robots" content="noindex"'), true);
-check('record page links the PDF', sp.includes(sample.pdf_link), true);
+const sp = sample ? recordPage(sample.certificate_id) : null;
+if (sample) {
+  check('record page shows the certificate ID', sp.includes(sample.certificate_id), true);
+  check('record page is noindex', sp.includes('name="robots" content="noindex"'), true);
+  check('record page links the PDF', sp.includes(sample.pdf_link), true);
+}
 
 /* --- assets and footer -------------------------------------------------- */
 
@@ -199,15 +246,25 @@ check('EU disclaimer on every page',
 check('favicon files exist',
   ['favicon.svg', 'favicon-32x32.png', 'apple-touch-icon.png']
     .every((f) => fs.existsSync(path.join(OUT, 'assets', f))), true);
-check('OG share image exists', fs.existsSync(path.join(logoDir, 'banner.png')), true);
+const ogImagePath = path.join(logoDir, config.brand.banner);
+check('OG share image exists', fs.existsSync(ogImagePath), true);
+const ogDimensions = pngDimensions(ogImagePath);
+check('OG share image is a valid PNG with useful basic dimensions',
+  Boolean(ogDimensions && ogDimensions.width >= 600 && ogDimensions.height >= 315), true);
+check('every page has a referrer policy',
+  allHtml.every((h) => h.includes('name="referrer" content="strict-origin-when-cross-origin"')), true);
+check('every page has a restrictive content security policy',
+  allHtml.every((h) => h.includes('http-equiv="Content-Security-Policy"')), true);
 check('every page has a meta description',
   allHtml.every((h) => /<meta name="description" content="[^"]+"/.test(h)), true);
 check('every page has an Open Graph image tag',
   allHtml.every((h) => h.includes('property="og:image"')), true);
 check('home page has a canonical link matching baseUrl root',
   readOut('index.html').includes(`<link rel="canonical" href="${config.baseUrl}/">`), true);
-check('record page has a canonical link matching its own ID',
-  sp.includes(`<link rel="canonical" href="${config.baseUrl}/c/${sample.certificate_id}/">`), true);
+if (sample) {
+  check('record page has a canonical link matching its own ID',
+    sp.includes(`<link rel="canonical" href="${config.baseUrl}/c/${sample.certificate_id}/">`), true);
+}
 check('404 page has NO canonical link (it is not a real address)',
   readOut('404.html').includes('rel="canonical"'), false);
 
@@ -221,17 +278,67 @@ check('404 page has NO canonical link (it is not a real address)',
   const notFoundHtml = readOut('404.html');
   const relative = [...notFoundHtml.matchAll(/(?:href|src)="([^"]+)"/g)]
     .map((m) => m[1])
-    .filter((v) => !/^(\/|mailto:|https?:)/.test(v));
+    .filter((v) => !/^(\/|#|mailto:|https?:)/.test(v));
   check('404 page has zero relative asset/link paths', relative, []);
+
+  const genericError = openingTagWithId(notFoundHtml, 'div', 'generic-err');
+  const certificateError = openingTagWithId(notFoundHtml, 'div', 'cert-err');
+  check('generic 404 message is visible by default',
+    Boolean(genericError) && !/\bhidden\b|display\s*:\s*none/i.test(genericError), true);
+  check('certificate-specific 404 message is hidden by default',
+    Boolean(certificateError) && /\bhidden\b|display\s*:\s*none/i.test(certificateError), true);
 }
+
+/* --- static accessibility and document structure --------------------- */
+
+check('every generated page has a main landmark',
+  htmlPages.filter((page) => !/<main\b/i.test(page.html)).map((page) => page.file), []);
+check('every generated page has a working skip link',
+  htmlPages.filter((page) => !hasSkipLink(page.html)).map((page) => page.file), []);
+check('every generated page has exactly one h1',
+  htmlPages.filter((page) => (page.html.match(/<h1\b/gi) || []).length !== 1)
+    .map((page) => page.file), []);
+check('no generated page emits a script after </html>',
+  htmlPages.filter((page) => {
+    const end = page.html.toLowerCase().lastIndexOf('</html>');
+    return end !== -1 && /<script\b/i.test(page.html.slice(end + 7));
+  }).map((page) => page.file), []);
+check('every inline script has valid JavaScript syntax',
+  htmlPages.flatMap((page) => [...page.html.matchAll(/<script>([\s\S]*?)<\/script>/gi)]
+    .filter((match) => {
+      try { new Function(match[1]); return false; } catch { return true; }
+    }).map(() => page.file)), []);
+check('every generated document declares English as its language',
+  htmlPages.filter((page) => !/<html\b[^>]*\blang=["']en["']/i.test(page.html))
+    .map((page) => page.file), []);
+if (bangla) {
+  const banglaPage = recordPage(bangla.certificate_id);
+  check('Bangla certificate name is localized in a lang="bn" span',
+    /<span\b[^>]*\blang=["']bn["'][^>]*>[^<]*[ঀ-৿][^<]*<\/span>/i.test(banglaPage), true);
+}
+
+{
+  const verifyHtml = readOut('verify/index.html');
+  const searchInput = openingTagWithId(verifyHtml, 'input', 'q');
+  const describedBy = /\baria-describedby=["']([^"']+)["']/i.exec(searchInput)?.[1]
+    .split(/\s+/).filter(Boolean) || [];
+  check('certificate input has a visible associated label',
+    /<label\b[^>]*\bfor=["']q["'][^>]*>\s*[^<\s]/i.test(verifyHtml), true);
+  check('certificate input describes its instructions with aria-describedby',
+    describedBy.length > 0 && describedBy.every((id) =>
+      new RegExp(`\\bid=["']${id}["']`, 'i').test(verifyHtml)), true);
+}
+
+check('no public _headers artifact is generated', fs.existsSync(path.join(OUT, '_headers')), false);
 
 check('robots.txt exists and points at the sitemap',
   (readOut('robots.txt') || '').includes(`Sitemap: ${config.baseUrl}/sitemap.xml`), true);
 
 const sitemap = readOut('sitemap.xml') || '';
-check('sitemap.xml exists and lists the three public pages',
+check('sitemap.xml exists and lists the public pages',
   ['<loc>' + config.baseUrl + '/</loc>',
    '<loc>' + config.baseUrl + '/course/</loc>',
+   '<loc>' + config.baseUrl + '/privacy/</loc>',
    '<loc>' + config.baseUrl + '/verify/</loc>']
     .every((u) => sitemap.includes(u)), true);
 check('sitemap.xml contains NO certificate IDs -- that would rebuild the public roster',

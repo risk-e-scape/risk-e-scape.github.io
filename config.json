@@ -17,6 +17,18 @@
     "banner": "banner.png"
   },
 
+  "certificate": {
+    "status": "draft",
+    "completionStatement": "for successful completion of the course conducted",
+    "batches": {
+      "2": { "startDate": "2026-07-03", "endDate": "2026-08-01" }
+    },
+    "signatories": [
+      { "name": "To be confirmed", "role": "Course coordination" },
+      { "name": "To be confirmed", "role": "Authorised institutional signatory" }
+    ]
+  },
+
   "euFunding": {
     "file": "eu.png",
     "label": "Co-funded by the European Union",

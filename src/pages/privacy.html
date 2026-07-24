@@ -1,0 +1,56 @@
+{{HEAD}}
+{{HEADER}}
+
+<main id="main-content">
+  <div class="hero compact">
+    <div class="wrap">
+      <div class="eyebrow">Certificate records</div>
+      <h1>Privacy and published information</h1>
+      <p class="lead">
+        This page explains what is shown when the {{FULL_TITLE}} certificate is verified and how to
+        request a correction.
+      </p>
+    </div>
+  </div>
+
+  <section>
+    <div class="wrap prose">
+      <h2 class="sec">What a record contains</h2>
+      <p>
+        An issued certificate record contains the participant name printed on the certificate,
+        certificate ID, batch, issue date and a link to the certificate PDF. A revoked record keeps
+        the certificate ID and revocation notice online but does not provide the PDF.
+      </p>
+
+      <h2 class="sec">Why records are published</h2>
+      <p>
+        Publication allows a certificate holder, employer or other verifier with the certificate ID
+        to confirm that the credential was issued by {{HOST}}. Records cannot be searched by name
+        and certificate pages are excluded from search-engine indexing and the public sitemap.
+      </p>
+      <p>
+        Anyone who receives a certificate ID or scans its QR code can access the corresponding
+        record. Certificate holders should therefore share their certificate and ID deliberately.
+      </p>
+
+      <h2 class="sec">Source-data protection</h2>
+      <p>
+        The participant roster used to generate records is not stored in this public website
+        repository. It must contain only information printed on the certificate; contact details,
+        identity numbers, grades, marks, addresses and dates of birth are not accepted by the build.
+      </p>
+
+      <h2 class="sec">Corrections and questions</h2>
+      <p>
+        To report an incorrect name, date, certificate status or document link, contact course
+        coordination. Include the certificate ID, but do not send sensitive identity documents by
+        email unless the coordination office specifically requests a secure verification method.
+      </p>
+      <p class="contact-callout">
+        <a class="btn" href="mailto:{{CONTACT_EMAIL}}">Request a correction</a>
+        <span>{{CONTACT_EMAIL}}</span>
+      </p>
+    </div>
+  </section>
+</main>
+{{FOOTER}}

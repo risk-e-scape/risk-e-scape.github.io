@@ -30,7 +30,7 @@ const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8'
 const P = config.programme;
 
 const ID_RE = /^RES-B\d+-\d{4}-[A-Z0-9]{4}$/;
-const COLUMNS = ['certificate_id', 'name', 'issued', 'status', 'pdf_link'];
+const COLUMNS = ['batch', 'certificate_id', 'name', 'issued', 'status', 'pdf_link'];
 
 /* Characters that cannot be confused when read off a printed certificate:
    no 0/O, no 1/I/L. Someone will always have to type one of these by hand. */
@@ -166,7 +166,7 @@ function batchFiles() {
 /* Extract batch number from certificate ID (e.g., RES-B1-0001-XXXX -> 1). */
 function batchNumberFromId(certificateId) {
   const m = /^RES-B(\d+)-\d{4}-[A-Z0-9]{4}$/.exec(certificateId || '');
-  return m ? parseInt(m[1], 10) : 1;
+  return m ? parseInt(m[1], 10) : null;
 }
 
 function readBatch(filename) {
@@ -190,7 +190,16 @@ function readBatch(filename) {
     if (rec.name) rec.name = sanitizeName(rec.name);
     if (!rec.status) rec.status = 'issued';
     rec.status = rec.status.toLowerCase();
-    rec.batch = batchNumberFromId(rec.certificate_id);
+    const explicitBatch = /^\d+$/.test(rec.batch || '') ? parseInt(rec.batch, 10) : null;
+    const idBatch = batchNumberFromId(rec.certificate_id);
+    rec.batch = explicitBatch || idBatch;
+    if (!rec.certificate_id && !explicitBatch) {
+      problems.push(`${filename} line ${idx + 2}: a blank certificate_id requires a batch number`);
+    }
+    if (explicitBatch && idBatch && explicitBatch !== idBatch) {
+      problems.push(`${filename} line ${idx + 2}: batch ${explicitBatch} does not match ` +
+                    `certificate ID batch ${idBatch}`);
+    }
     return rec;
   });
 
@@ -200,10 +209,10 @@ function readBatch(filename) {
 /* Only ever fills blanks. An ID already in the file is left alone, because
    it may already be printed on paper. */
 function assignMissingIds(filename, records) {
-  // Group records by batch number (extracted from existing IDs or default to 1)
+  // Group records by their explicit batch, or the batch encoded in an existing ID.
   const byBatch = new Map();
   for (const r of records) {
-    const b = r.batch || batchNumberFromId(r.certificate_id) || 1;
+    const b = r.batch || batchNumberFromId(r.certificate_id);
     if (!byBatch.has(b)) byBatch.set(b, []);
     byBatch.get(b).push(r);
   }
@@ -274,6 +283,17 @@ function checkRecords(records) {
     if (r.status === 'issued') {
       if (!r.pdf_link) problems.push(`${where}: marked issued but has no pdf_link`);
       if (!r.issued) problems.push(`${where}: marked issued but has no issued date`);
+      if (r.pdf_link && !/^https:\/\/drive\.google\.com\/file\/d\/[^/]+\/view(?:\?.*)?$/.test(r.pdf_link)) {
+        problems.push(`${where}: pdf_link must be a Google Drive file viewer URL`);
+      }
+      if (/DUMMY_FILE_ID|placeholder|example/i.test(r.pdf_link || '')) {
+        problems.push(`${where}: pdf_link contains a placeholder rather than a real file ID`);
+      }
+      if (r.issued && !/^\d{4}-\d{2}-\d{2}$/.test(r.issued)) {
+        problems.push(`${where}: issued date must use YYYY-MM-DD`);
+      } else if (r.issued && r.issued > new Date().toISOString().slice(0, 10)) {
+        problems.push(`${where}: issued date cannot be in the future`);
+      }
     }
     /* Refuse to publish anything the certificate itself does not carry.
        This is the only thing standing between a stray spreadsheet column
@@ -335,7 +355,7 @@ function head(title, depth, opts) {
   const description = opts.description ||
     `${P.name} — course information and certificate verification.`;
   const url = opts.path != null ? `${config.baseUrl}/${opts.path}` : null;
-  const ogImage = `${config.baseUrl}/assets/logos/banner.png`;
+  const ogImage = `${config.baseUrl}/assets/logos/${config.brand.banner}`;
 
   return `<!doctype html>
 <html lang="en">
@@ -344,6 +364,8 @@ function head(title, depth, opts) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(description)}">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; base-uri 'self'; form-action 'self'">
 ${url ? `<link rel="canonical" href="${esc(url)}">\n` : ''}<meta name="theme-color" content="#14532d">
 <link rel="icon" href="${p}assets/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="${p}assets/favicon-32x32.png" sizes="32x32" type="image/png">
@@ -359,7 +381,8 @@ ${url ? `<meta property="og:url" content="${esc(url)}">\n` : ''}<meta property="
 <meta name="twitter:image" content="${esc(ogImage)}">
 <link rel="stylesheet" href="${p}assets/css/site.css">
 ${opts.extra || ''}</head>
-<body>`;
+<body>
+<a class="skip-link" href="#main-content">Skip to main content</a>`;
 }
 
 function header(current, depth) {
@@ -374,18 +397,15 @@ function header(current, depth) {
            onerror="this.outerHTML='<span class=\\'r\\'>RISK</span><span class=\\'e\\'>-E-</span><span class=\\'s\\'>SCAPE</span>'">`
     : `<span class="r">RISK</span><span class="e">-E-</span><span class="s">SCAPE</span>`;
 
-  // Checkbox-driven menu, no JavaScript: the hamburger is a <label> toggling
-  // a hidden checkbox that a CSS sibling selector reads. Works identically
-  // on the record pages, which otherwise ship zero script.
   return `
 <header class="site">
   <div class="wrap">
-    <a class="wordmark" href="${home}">${mark}</a>
-    <input type="checkbox" id="nav-toggle" class="nav-toggle-input">
-    <label for="nav-toggle" class="nav-toggle" aria-label="Toggle navigation menu">
+    <a class="wordmark" href="${home}" aria-label="${esc(P.name)} home">${mark}</a>
+    <button type="button" class="menu-button" aria-expanded="false"
+            aria-controls="site-navigation" aria-label="Open navigation menu">
       <span></span><span></span><span></span>
-    </label>
-    <nav class="site">
+    </button>
+    <nav class="site" id="site-navigation" aria-label="Primary navigation">
       <a href="${home}"${on('home')}>Home</a>
       <a href="${p}course/"${on('course')}>The Course</a>
       <a href="${p}verify/"${on('verify')}>Verify a Certificate</a>
@@ -401,9 +421,10 @@ function partnerLogos(depth) {
   const p = prefix(depth);
   return config.partners.map((x) => `
     <a class="logo" href="${esc(x.site)}" target="_blank" rel="noopener noreferrer"
-       title="${esc(x.name)}">
-      <img src="${p}assets/logos/${esc(x.file)}" alt="${esc(x.name)}"
+       aria-label="${esc(x.name)} (opens in a new tab)">
+      <img src="${p}assets/logos/${esc(x.file)}" alt=""
            onerror="this.outerHTML='<span class=\\'logo-missing\\'>${esc(x.short)}</span>'">
+      <span class="logo-name">${esc(x.name)} <span aria-hidden="true">↗</span></span>
     </a>`).join('');
 }
 
@@ -415,27 +436,51 @@ function footer(depth) {
   <div class="wrap">
     <div class="cols">
       <div>
-        <h4>Course coordination</h4>
+        <h2>Course coordination</h2>
         <p>${esc(P.host)}</p>
         <p>${esc(P.address)}</p>
         <p><a href="mailto:${esc(P.contactEmail)}">${esc(P.contactEmail)}</a></p>
       </div>
       <div>
-        <h4>Certificates</h4>
+        <h2>Certificates</h2>
         <p><a href="${p}verify/">Verify a certificate</a></p>
         <p><a href="${p}course/">About the course</a></p>
+        <p><a href="${p}privacy/">Privacy and published records</a></p>
       </div>
       <div>
-        <h4>Funding</h4>
+        <h2>Funding</h2>
         <div class="eu-block">
           <img src="${p}assets/logos/${esc(eu.file)}" alt=""
                onerror="this.outerHTML='<span class=\\'logo-missing eu\\'>EU</span>'">
+          <span class="eu-label">${esc(eu.label)}</span>
         </div>
       </div>
     </div>
     <p class="eu-disclaimer">${esc(eu.disclaimer)}</p>
   </div>
 </footer>
+<script>
+(function () {
+  document.body.classList.add('nav-ready');
+  var button = document.querySelector('.menu-button');
+  var nav = document.getElementById('site-navigation');
+  if (!button || !nav) return;
+  function setOpen(open) {
+    button.setAttribute('aria-expanded', String(open));
+    button.setAttribute('aria-label', open ? 'Close navigation menu' : 'Open navigation menu');
+    nav.classList.toggle('is-open', open);
+  }
+  button.addEventListener('click', function () {
+    setOpen(button.getAttribute('aria-expanded') !== 'true');
+  });
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && button.getAttribute('aria-expanded') === 'true') {
+      setOpen(false);
+      button.focus();
+    }
+  });
+})();
+</script>
 </body>
 </html>`;
 }
@@ -446,12 +491,24 @@ function footer(depth) {
 
 /* Detect if text contains Bangla (Bengali) script for lang attribute. */
 function detectLang(text) {
-  return /[\u0980-\u09FF]/.test(text) ? 'bn' : 'en';
+  return /[\u0980-\u09FF]/.test(text) ? 'bn' : null;
+}
+
+function formatDate(isoDate) {
+  const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate || '');
+  if (!parts) return isoDate;
+  const date = new Date(Date.UTC(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3])));
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC'
+  }).format(date);
 }
 
 function recordPage(rec) {
   const d = 2;
-  const lang = detectLang(rec.name);
+  const nameLang = detectLang(rec.name);
+  const localizedName = nameLang
+    ? `<span lang="${nameLang}">${esc(rec.name)}</span>`
+    : esc(rec.name);
   const meta = '<meta name="robots" content="noindex">\n';
   const description = rec.status === 'revoked'
     ? `Certificate ${rec.certificate_id} has been revoked and is no longer valid.`
@@ -472,15 +529,15 @@ function recordPage(rec) {
   ) : (
     '<div class="card">' +
     '<span class="badge">Verified</span>' +
-    '<div class="name">' + esc(rec.name) + '</div>' +
+    '<h2 class="name">' + localizedName + '</h2>' +
     '<p class="prog">' + esc(P.name) + '</p>' +
     '<dl>' +
     '<dt>Certificate ID</dt><dd class="mono id-copy" data-id="' + esc(rec.certificate_id) + '">' + esc(rec.certificate_id) + '</dd>' +
     '<dt>Batch</dt><dd>Batch ' + esc(rec.batch) + '</dd>' +
-    '<dt>Issued</dt><dd>' + esc(rec.issued) + '</dd>' +
+    '<dt>Issued</dt><dd><time datetime="' + esc(rec.issued) + '">' + esc(formatDate(rec.issued)) + '</time></dd>' +
     '</dl>' +
     '<a class="dl" href="' + esc(rec.pdf_link) + '" target="_blank" rel="noopener noreferrer">' +
-    'Download certificate (PDF)</a>' +
+    'View certificate PDF <span class="external-link-hint">(opens in a new tab)</span></a>' +
     '</div>'
   );
 
@@ -494,11 +551,16 @@ const copyScript = rec.status !== 'revoked' ? (
     'btn.className = \'copy-btn\';' +
     'btn.textContent = \'Copy\';' +
     'btn.setAttribute(\'aria-label\', \'Copy certificate ID\');' +
+    'var status = document.getElementById(\'copy-status\');' +
     'btn.addEventListener(\'click\', function () {' +
+    'if (!navigator.clipboard || !navigator.clipboard.writeText) { status.textContent = \'Automatic copying is unavailable. Select and copy the certificate ID manually.\'; return; }' +
     'navigator.clipboard.writeText(el.dataset.id).then(function () {' +
-    'var old = btn.textContent;' +
-    'btn.textContent = \'Copied!\';' +
-    'setTimeout(function () { btn.textContent = old; }, 1500);' +
+    'btn.textContent = \'Copied\';' +
+    'btn.setAttribute(\'aria-label\', \'Certificate ID copied\');' +
+    'status.textContent = \'Certificate ID copied to clipboard.\';' +
+    'setTimeout(function () { btn.textContent = \'Copy\'; btn.setAttribute(\'aria-label\', \'Copy certificate ID\'); status.textContent = \'\'; }, 1500);' +
+    '}, function () {' +
+    'status.textContent = \'Could not copy automatically. Select and copy the certificate ID manually.\';' +
     '});' +
     '});' +
     'el.appendChild(btn);' +
@@ -509,16 +571,17 @@ const copyScript = rec.status !== 'revoked' ? (
 
   return head('Certificate ' + rec.certificate_id + ' \u2014 ' + P.name, d, {
     extra: meta, description, path: 'c/' + rec.certificate_id + '/'
-  }).replace('<html lang="en">', '<html lang="' + lang + '">') + header('verify', d) +
-  '<div class="verify-wrap">' +
+  }) + header('verify', d) +
+  '<main id="main-content" class="verify-wrap">' +
   '<h1 class="page-title">Certificate record</h1>' +
   '<p class="prog">Published by ' + esc(P.host) + '.</p>' +
   card +
+  '<p id="copy-status" class="status-message" role="status" aria-live="polite"></p>' +
   '<p class="hint foot-note">' +
   'Checking a different certificate? <a href="' + prefix(d) + 'verify/">Look up another ID</a>.' +
   'Questions: <a href="mailto:' + esc(P.contactEmail) + '">' + esc(P.contactEmail) + '</a>.' +
   '</p>' +
-  '</div>' + footer(d) + copyScript;
+  '</main>' + copyScript + footer(d);
 }
 
 function verifyPage() {
@@ -527,43 +590,60 @@ function verifyPage() {
     description: `Enter a certificate ID to verify a ${P.name} credential.`,
     path: 'verify/'
   }) + header('verify', d) + `
-<div class="verify-wrap">
+<main id="main-content" class="verify-wrap">
   <h1 class="page-title">Verify a Certificate</h1>
   <p class="prog">${esc(P.name)}</p>
 
   <form class="verify" id="f" autocomplete="off">
-    <input type="search" id="q" placeholder="RES-B2-0001-HN24"
-           aria-label="Certificate ID" spellcheck="false">
+    <label for="q">Certificate ID</label>
+    <input type="search" id="q" name="certificate_id" placeholder="RES-B2-0001-HN24"
+           aria-describedby="id-instructions" autocapitalize="characters" spellcheck="false">
     <button class="btn" type="submit">Verify</button>
   </form>
-  <p class="hint">
+  <p class="hint" id="id-instructions">
     Enter the certificate ID printed on the certificate, including the four characters after
     the last dash. Scanning the QR code goes straight to the record.
   </p>
 
-  <div id="out" aria-live="polite"></div>
+  <div id="out" role="status" aria-live="polite"></div>
+  <noscript>
+    <div class="card err"><h2>JavaScript is unavailable</h2>
+      <p>Open <span class="mono">${esc(config.baseUrl)}/c/YOUR-CERTIFICATE-ID/</span>, replacing
+      <span class="mono">YOUR-CERTIFICATE-ID</span> with the complete ID printed on the certificate.</p>
+    </div>
+  </noscript>
 
   <p class="hint foot-note">
     Certificates cannot be looked up by name — a record is reachable only by its certificate ID.<br>
     Cannot find a certificate you believe is genuine? Contact
     <a href="mailto:${esc(P.contactEmail)}">${esc(P.contactEmail)}</a>.
   </p>
-</div>
+</main>
 <script>
-/* The form only navigates. Every record is a real page, so verification
-   itself needs no JavaScript — this just avoids a pointless trip to a 404. */
+/* The static host cannot convert a form field into a path without client-side
+   navigation. Direct record URLs remain plain HTML; this enhances ID entry. */
 var ID_RE = ${ID_RE.toString()};
+document.getElementById('q').addEventListener('input', function () {
+  this.removeAttribute('aria-invalid');
+});
 document.getElementById('f').addEventListener('submit', function (e) {
   e.preventDefault();
   var out = document.getElementById('out');
-  var id = document.getElementById('q').value.trim().toUpperCase();
+  var value = document.getElementById('q').value.trim().toUpperCase();
+  var fromUrl = value.match(/\\/C\\/(RES-B\\d+-\\d{4}-[A-Z0-9]{4})(?:\\/|$)/);
+  var id = (fromUrl ? fromUrl[1] : value)
+    .replace(/[‐‑‒–—−]/g, '-')
+    .replace(/\\s*-\\s*/g, '-')
+    .replace(/\\s+/g, '');
   out.textContent = '';
   if (!ID_RE.test(id)) {
+    document.getElementById('q').setAttribute('aria-invalid', 'true');
     out.innerHTML = '<div class="card err"><h2>That does not look like a certificate ID</h2>' +
       '<p>IDs look like <span class="mono">RES-B2-0001-HN24</span>. Check it is copied in ' +
       'full, including the four characters after the last dash.</p></div>';
     return;
   }
+  document.getElementById('q').removeAttribute('aria-invalid');
   location.href = '../c/' + encodeURIComponent(id) + '/';
 });
 </script>` + footer(d);
@@ -578,42 +658,41 @@ function notFoundPage() {
      this wrong doesn't 404 visibly: the page renders with the stylesheet
      silently failed to load, i.e. completely unstyled. */
   const d = 'root';
-  return head('Certificate not found — ' + P.name, d, {
+  return head('Page not found — ' + P.name, d, {
     extra: '<meta name="robots" content="noindex">\n',
-    description: 'No certificate matches this address.'
-  }) + header('verify', d) + `
-<div class="verify-wrap">
-  <div class="card err" id="cert-err">
-    <h2>No certificate matches this ID</h2>
+    description: 'The requested page could not be found.'
+  }) + header(null, d) + `
+<main id="main-content" class="verify-wrap">
+  <h1 class="page-title" id="not-found-title">Page not found</h1>
+  <div class="card err" id="generic-err">
+    <p>The page you are looking for does not exist.</p>
+  </div>
+  <div class="card err" id="cert-err" hidden>
     <p>Nothing is on record at this address.</p>
     <p>Check the ID is copied in full, including the four characters after the last dash.
        IDs look like <span class="mono">RES-B2-0001-HN24</span>.</p>
   </div>
-  <div class="card err" id="generic-err" style="display:none;">
-    <h2>Page not found</h2>
-    <p>The page you are looking for does not exist.</p>
-  </div>
-  <p class="hint foot-note" id="cert-hint">
-    <a href="/verify/">Try another certificate ID</a> ·
-    Contact <a href="mailto:${esc(P.contactEmail)}">${esc(P.contactEmail)}</a>
-  </p>
-  <p class="hint foot-note" id="generic-hint" style="display:none;">
+  <p class="hint foot-note" id="generic-hint">
     <a href="/">Return to home</a> ·
     Contact <a href="mailto:${esc(P.contactEmail)}">${esc(P.contactEmail)}</a>
   </p>
-</div>
+  <p class="hint foot-note" id="cert-hint" hidden>
+    <a href="/verify/">Try another certificate ID</a> ·
+    Contact <a href="mailto:${esc(P.contactEmail)}">${esc(P.contactEmail)}</a>
+  </p>
+</main>
 <script>
 (function () {
   var path = window.location.pathname;
   var isCertPath = path.startsWith('/c/');
-  document.getElementById('cert-err').style.display = isCertPath ? 'block' : 'none';
-  document.getElementById('generic-err').style.display = isCertPath ? 'none' : 'block';
-  document.getElementById('cert-hint').style.display = isCertPath ? 'block' : 'none';
-  document.getElementById('generic-hint').style.display = isCertPath ? 'none' : 'block';
-  // Update page title
-  document.title = isCertPath
-    ? 'Certificate not found — ${esc(P.name)}'
-    : 'Page not found — ${esc(P.name)}';
+  document.getElementById('cert-err').hidden = !isCertPath;
+  document.getElementById('generic-err').hidden = isCertPath;
+  document.getElementById('cert-hint').hidden = !isCertPath;
+  document.getElementById('generic-hint').hidden = isCertPath;
+  if (isCertPath) {
+    document.getElementById('not-found-title').textContent = 'No certificate matches this ID';
+    document.title = 'Certificate not found — ${esc(P.name)}';
+  }
 })();
 </script>` + footer(d);
 }
@@ -630,6 +709,11 @@ const PAGE_META = {
     description: `Course overview: disaster response, humanitarian medicine, displacement, ` +
       `leadership and community engagement — ${P.name}.`,
     path: 'course/'
+  },
+  'privacy.html': {
+    title: `Privacy and Published Records — ${P.name}`,
+    description: `How ${P.name} publishes and protects certificate record information.`,
+    path: 'privacy/'
   }
 };
 
@@ -643,7 +727,8 @@ function templatePage(file, current, depth) {
     '{{PARTNER_LOGOS}}': partnerLogos(depth),
     '{{PREFIX}}': prefix(depth),
     '{{FULL_TITLE}}': esc(P.fullTitle),
-    '{{HOST}}': esc(P.host)
+    '{{HOST}}': esc(P.host),
+    '{{CONTACT_EMAIL}}': esc(P.contactEmail)
   };
   for (const k of Object.keys(map)) html = html.split(k).join(map[k]);
 
@@ -658,11 +743,6 @@ function templatePage(file, current, depth) {
 
 function build() {
   const files = batchFiles();
-  if (!files.length) {
-    console.error('No participants/participants.csv file found. Nothing to build.');
-    process.exit(1);
-  }
-
   let all = [], problems = [], assigned = 0;
   for (const f of files) {
     const { records, problems: p } = readBatch(f);
@@ -687,24 +767,20 @@ function build() {
 
   copyDir(path.join(SRC, 'assets'), path.join(OUT, 'assets'));
 
-  // Copy _headers for CSP and security headers (GitHub Pages supports this)
-  if (fs.existsSync(path.join(SRC, '_headers'))) {
-    fs.copyFileSync(path.join(SRC, '_headers'), path.join(OUT, '_headers'));
-  }
-
   write('index.html', templatePage('index.html', 'home', 0));
   write('course/index.html', templatePage('course.html', 'course', 1));
+  write('privacy/index.html', templatePage('privacy.html', null, 1));
   write('verify/index.html', verifyPage());
   write('404.html', notFoundPage());
 
   write('robots.txt', `User-agent: *\nAllow: /\nSitemap: ${config.baseUrl}/sitemap.xml\n`);
 
-  /* Deliberately just these three. Certificate record pages are already
-     noindex — listing every /c/<ID>/ here would rebuild the exact public
-     roster this site is designed not to have. */
+  /* Certificate record pages are noindex and deliberately omitted: listing
+     every ID here would expose an enumerable public roster. */
   const sitemapUrls = [
     { url: '', lastmod: null },
     { url: 'course/', lastmod: null },
+    { url: 'privacy/', lastmod: null },
     { url: 'verify/', lastmod: null }
   ];
   write('sitemap.xml',
