@@ -72,10 +72,18 @@ jobs:
       - run: npm ci
       - name: Check formatting (basic)
         run: |
-          if git ls-files --eol | grep -q "w/crlf"; then
-            echo "WARNING: CRLF line endings detected in tracked files"
+          # Look at the index, not the working tree. .gitattributes checks .bat
+          # out as CRLF on purpose, so "w/crlf" is expected there and says
+          # nothing; "i/crlf" means a file was actually stored unnormalised.
+          if git ls-files --eol | grep -q "i/crlf"; then
+            echo "WARNING: CRLF stored in the index for some tracked files"
           fi
-          if git grep -n "[[:space:]]$" -- "*.js" "*.json" "*.html" "*.css" "*.md" "*.sh" "*.bat" 2>/dev/null; then
+          # --cached greps the index, not the working tree. .gitattributes
+          # stores every text file as LF (even .bat, which is only checked OUT
+          # as CRLF), so there is no \r here for [[:space:]] to match. Without
+          # --cached this matched the line ending of every single line in the
+          # deliberately-CRLF .bat files and failed the build.
+          if git grep --cached -n "[[:space:]]$" -- "*.js" "*.json" "*.html" "*.css" "*.md" "*.sh" "*.bat" 2>/dev/null; then
             echo "ERROR: Trailing whitespace found"
             exit 1
           fi
