@@ -5,45 +5,12 @@ const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
 const QRCode = require('qrcode');
+const { parseRecords, sanitizeName, csvField } = require('./lib/csv');
 
 const ROOT = __dirname;
 const ROSTER = path.join(ROOT, 'participants', 'participants.csv');
 const OUTPUT = path.join(ROOT, 'certificate-materials');
 const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8'));
-
-function parseCsv(text) {
-  const rows = [];
-  let row = [], field = '', quoted = false, i = 0;
-  text = text.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
-  while (i < text.length) {
-    const c = text[i];
-    if (quoted) {
-      if (c === '"') {
-        if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
-        quoted = false; i++; continue;
-      }
-      field += c; i++; continue;
-    }
-    if (c === '"') { quoted = true; i++; continue; }
-    if (c === ',') { row.push(field); field = ''; i++; continue; }
-    if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; i++; continue; }
-    field += c; i++;
-  }
-  if (field !== '' || row.length) { row.push(field); rows.push(row); }
-  const keep = rows.filter((r) => r.some((value) => value.trim() !== ''));
-  if (!keep.length) return [];
-  const header = keep[0].map((value) => value.trim().toLowerCase());
-  return keep.slice(1).map((cells) => {
-    const record = {};
-    header.forEach((name, index) => { record[name] = (cells[index] || '').trim(); });
-    return record;
-  });
-}
-
-function csvField(value) {
-  const text = String(value == null ? '' : value);
-  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-}
 
 async function main() {
   if (!fs.existsSync(ROSTER)) {
@@ -53,7 +20,7 @@ async function main() {
   }
 
   execFileSync(process.execPath, [path.join(ROOT, 'build.js')], { stdio: 'inherit' });
-  const records = parseCsv(fs.readFileSync(ROSTER, 'utf8'));
+  const records = parseRecords(fs.readFileSync(ROSTER, 'utf8'));
   const ready = records.filter((record) => record.certificate_id);
 
   fs.rmSync(OUTPUT, { recursive: true, force: true });
@@ -71,7 +38,11 @@ async function main() {
     await QRCode.toFile(path.join(OUTPUT, svgName), url, {
       type: 'svg', margin: 4, errorCorrectionLevel: 'H'
     });
-    summary.push([id, record.name, record.status || 'issued', url, pngName, svgName]);
+    /* sanitizeName, not the raw value: HOW-TO tells the coordinator to open
+       verification-links.csv in Excel or Google Sheets, and a name beginning
+       =, +, - or @ is a formula there. build.js guards participants.csv on
+       write; this is the same guard for the file derived from it. */
+    summary.push([id, sanitizeName(record.name), record.status || 'issued', url, pngName, svgName]);
   }
 
   const csv = summary.map((row) => row.map(csvField).join(',')).join('\n') + '\n';

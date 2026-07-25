@@ -5,7 +5,17 @@ Batch 2 are certified together at the close of Batch 2.
 
 Live at **<https://risk-e-scape.github.io/>**.
 
-**Maintaining the participant lists needs no programming — see [HOW-TO.md](HOW-TO.md).**
+## Which document do I want?
+
+| I want to… | Read |
+| --- | --- |
+| **Issue certificates** — the actual step-by-step, with commands | **[HOW-TO.md](HOW-TO.md)** |
+| Understand how this works and why it is built this way | this file |
+| Know what each spreadsheet column means | [participants/README.md](participants/README.md) |
+| Add or change a partner logo, or check the EU emblem rules | [src/assets/logos/README.md](src/assets/logos/README.md) |
+
+The procedure lives in HOW-TO.md and nowhere else. It used to be written out in three places,
+which meant three copies to keep in step and two of them going stale.
 
 ## How the pipeline works
 
@@ -57,9 +67,12 @@ participants/   participants.csv — the roster, tracked in this repository
 certificate-materials/  ignored QR PNG/SVG files and verification-links.csv
 certificate-pdfs/  ignored timestamped draft/final PDFs
 config.json     course name, contacts, partner logos, EU funding, baseUrl
+lib/            csv.js and dates.js — shared by the three pipeline scripts
 build.js        generates docs/
+prepare-certificates.js  assigns IDs, writes QR codes
+generate-certificates.js draws the certificate PDFs
 serve.js        local preview server
-test.js         checks the built output
+test.js         checks the built output (keeps its own CSV reader on purpose)
 build.bat/.sh   double-click build
 preview.bat/.sh double-click preview
 src/
@@ -79,6 +92,9 @@ npm start             # preview at http://localhost:8000
 
 Or double-click `build.bat` / `preview.bat` on Windows, `build.sh` / `preview.sh` elsewhere.
 
+**To actually issue certificates, follow [HOW-TO.md](HOW-TO.md).** It covers these commands in
+order, with the approval gate, the Google Drive step and the Windows pitfalls.
+
 ### One-time deployment setup
 
 In GitHub, open **Settings → Pages** and select **GitHub Actions** as the source. That is the whole
@@ -86,32 +102,6 @@ setup — pushing to `main` builds and deploys.
 
 If `participants/participants.csv` is missing entirely, the workflow publishes informational pages
 with zero certificate records rather than failing or inventing sample credentials.
-
-### Full operator sequence
-
-1. Open `participants/participants.csv` and replace the placeholder names with the coordinator's
-   roster. Keep existing IDs if those draft records are being corrected; leave the ID blank only for
-   a genuinely new participant. Keep each row as `pending`.
-2. Run `npm run drafts`. It assigns new IDs when needed and creates:
-   - `certificate-materials/verification-links.csv` — ID, verification URL and QR filenames
-   - `certificate-materials/<ID>.png` — print-ready QR code
-   - `certificate-materials/<ID>.svg` — scalable QR code
-3. Review the newest timestamped folder under `certificate-pdfs/`. It contains one watermarked
-   **DRAFT — NOT VALID FOR ISSUE** PDF per row. Scan each QR code and inspect the certificate ID,
-   name placement, course period, signature space and print margins. Drafts are intentionally kept
-   locally for coordinator review and are ignored by Git.
-4. The Batch 2 template currently states: **for successful completion of the course conducted** from
-   **3 July 2026 to 1 August 2026**, and displays **Batch 2**. When the coordinator approves the
-   wording and signatories, update `certificate.status` to `approved` and replace every
-   `To be confirmed` field in `config.json`. Enter the actual issue date for each non-revoked row,
-   then run `npm run certificates`.
-5. Upload each approved PDF to the Google Drive folder. Set **Anyone with the link — Viewer**,
-   copy the `/view` URL into `pdf_link`, and change `status` from `pending` to `issued`.
-6. Run `npm test`, then commit and push. Certificate IDs must already be in the committed CSV —
-   the build refuses to assign one on a CI runner, since the runner is discarded and the next build
-   would produce a different ID for the same person.
-7. After the Actions run succeeds, send each student their PDF URL, certificate ID and verification
-   URL.
 
 ## Record statuses
 

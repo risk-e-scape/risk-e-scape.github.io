@@ -5,6 +5,8 @@ const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
 const QRCode = require('qrcode');
+const { parseRecords } = require('./lib/csv');
+const { formatDate } = require('./lib/dates');
 
 const ROOT = __dirname;
 const ROSTER = path.join(ROOT, 'participants', 'participants.csv');
@@ -15,43 +17,9 @@ const BENGALI_FONT = path.join(ROOT, 'node_modules', '@fontsource', 'noto-serif-
 const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8'));
 const draft = process.argv.includes('--draft');
 
-function parseCsv(text) {
-  const rows = [];
-  let row = [], field = '', quoted = false, i = 0;
-  text = text.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
-  while (i < text.length) {
-    const c = text[i];
-    if (quoted) {
-      if (c === '"') {
-        if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
-        quoted = false; i++; continue;
-      }
-      field += c; i++; continue;
-    }
-    if (c === '"') { quoted = true; i++; continue; }
-    if (c === ',') { row.push(field); field = ''; i++; continue; }
-    if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; i++; continue; }
-    field += c; i++;
-  }
-  if (field !== '' || row.length) { row.push(field); rows.push(row); }
-  const keep = rows.filter((r) => r.some((value) => value.trim() !== ''));
-  if (!keep.length) return [];
-  const header = keep[0].map((value) => value.trim().toLowerCase());
-  return keep.slice(1).map((cells) => {
-    const record = {};
-    header.forEach((name, index) => { record[name] = (cells[index] || '').trim(); });
-    return record;
-  });
-}
-
-function formatDate(value) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || '');
-  if (!match) return 'To be confirmed';
-  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
-  return new Intl.DateTimeFormat('en-GB', {
-    day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC'
-  }).format(date);
-}
+/* Drafts intentionally have no issue date yet, so an unset date renders as
+   "To be confirmed" on the certificate rather than as a blank or a raw value. */
+const UNSET_DATE = 'To be confirmed';
 
 function drawImageIfPresent(doc, file, x, y, options) {
   if (fs.existsSync(file)) doc.image(file, x, y, options);
@@ -174,7 +142,7 @@ function createPdf(record, template, outputDir) {
         .text(template.completionStatement, 130, 273, { width: 583, align: 'center' });
       drawSingleLine(doc, config.programme.fullTitle, 294, 650, green, 14, 9);
       doc.fillColor(muted).font('Helvetica').fontSize(10.5)
-        .text(`Batch ${record.batch} · ${formatDate(period.startDate)} to ${formatDate(period.endDate)}`, 130, 316, { width: 583, align: 'center' });
+        .text(`Batch ${record.batch} · ${formatDate(period.startDate, UNSET_DATE)} to ${formatDate(period.endDate, UNSET_DATE)}`, 130, 316, { width: 583, align: 'center' });
       doc.fillColor(muted).font('Helvetica').fontSize(9.5)
         .text(`Issued by ${config.programme.host}`, 130, 334, { width: 583, align: 'center' });
 
@@ -195,7 +163,7 @@ function createPdf(record, template, outputDir) {
       doc.fillColor(green).font('Helvetica-Bold').fontSize(10)
         .text(`Certificate ID: ${id}`, 74, 518, { width: 330 });
       doc.fillColor(muted).font('Helvetica').fontSize(8.5)
-        .text(`Batch ${record.batch} · Issue date: ${formatDate(record.issued)}`, 74, 533, { width: 360 });
+        .text(`Batch ${record.batch} · Issue date: ${formatDate(record.issued, UNSET_DATE)}`, 74, 533, { width: 360 });
       doc.image(qr, 698, 430, { fit: [88, 88] });
       doc.fillColor(green).font('Helvetica-Bold').fontSize(8.5)
         .text('Scan to verify', 686, 521, { width: 112, align: 'center' });
@@ -217,7 +185,7 @@ async function main() {
   }
   const template = config.certificate || {};
   if (!draft) assertApprovedTemplate(template);
-  const records = parseCsv(fs.readFileSync(ROSTER, 'utf8'));
+  const records = parseRecords(fs.readFileSync(ROSTER, 'utf8'));
   const selected = draft
     ? records.filter((record) => record.certificate_id)
     : records.filter((record) => record.certificate_id && record.status !== 'revoked');

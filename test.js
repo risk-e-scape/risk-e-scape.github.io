@@ -26,7 +26,14 @@ if (!fs.existsSync(OUT)) {
 
 const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8'));
 
-/* Minimal CSV read, matching build.js. Enough for the dummy data. */
+/* A deliberately independent CSV reader.
+
+   The pipeline scripts share lib/csv.js. This one does NOT, and must not be
+   "tidied" to use it: a test that parses with the same code it is validating
+   cannot detect a bug in that parser -- both sides would be wrong in exactly
+   the same way and every assertion would still pass. Keeping a second,
+   simpler implementation here means the two have to agree about what the
+   roster says before the suite goes green. */
 function readCsv(file) {
   const rows = [];
   let row = [], field = '', quoted = false, i = 0;
@@ -406,8 +413,10 @@ check('sitemap.xml contains NO certificate IDs -- that would rebuild the public 
 
 /* --- the frozen URL ------------------------------------------------------ */
 
-check('placeholder flag has been cleared (baseUrl is locked in)',
-  '_baseUrl_TODO' in config, false);
+/* This is the real guard on the frozen URL. It replaced a check for a
+   "_baseUrl_TODO" placeholder key that config.json never had -- an assertion
+   that could not fail, next to a build.js branch keyed on a third spelling
+   ("_baseUrl_NOTE") that could never fire. Both are gone. */
 check('baseUrl is the risk-e-scape.github.io root, no repo sub-path',
   config.baseUrl, 'https://risk-e-scape.github.io');
 

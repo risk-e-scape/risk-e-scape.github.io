@@ -61,7 +61,8 @@ IDs are never altered — only blank ones get filled in.
 Open `participants/participants.csv` in Excel or Google Sheets. Replace the three `(replace)`
 placeholder rows with the coordinator's list. For each person: set `batch`, type the `name` exactly
 as it should print, **leave `certificate_id` blank**, and set `status` to `pending`. Leave `issued`
-and `pdf_link` empty for now.
+and `pdf_link` empty for now. A `pending` row publishes nothing at all — see
+[Record statuses](README.md#record-statuses) for what each status does.
 
 Save as CSV. Column details are in `participants/README.md`.
 
@@ -205,17 +206,6 @@ Then open <http://localhost:8000>. Press `Ctrl+C` in the black window to stop it
 To check a record page, use an `issued` ID from the CSV, for example
 `http://localhost:8000/c/RES-B2-0001-94SX/`. Pending IDs deliberately have no page and return the
 "not found" screen.
-
-## Record statuses
-
-| Status | What gets published |
-| --- | --- |
-| `pending` | Nothing. The ID behaves exactly like an unknown one. |
-| `issued` | A verified record with a link to the Drive PDF. |
-| `revoked` | The page stays up with a revocation notice and no PDF link. |
-
-A revoked record deliberately stays online — a missing page reads as a typo, a revocation notice
-does not.
 
 ## Changing the wording, contacts or partners
 

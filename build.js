@@ -21,6 +21,9 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
+const { parseRows, sanitizeName, csvField } = require('./lib/csv');
+const { formatDate } = require('./lib/dates');
+
 const ROOT = __dirname;
 const SRC = path.join(ROOT, 'src');
 const OUT = path.join(ROOT, 'docs');
@@ -38,11 +41,6 @@ const ID_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
 
 /* Max attempts when generating a unique certificate ID suffix. */
 const MAX_ID_RETRIES = 10000;
-
-/* Characters that trigger spreadsheet formula execution when a CSV is opened
-   in Excel/Sheets. We prefix them with a zero-width space to neutralize. */
-const FORMULA_PREFIXES = ['=', '+', '-', '@'];
-const ZERO_WIDTH_SPACE = '\u200B';
 
 /* Required config.json fields for validation. */
 const REQUIRED_CONFIG = {
@@ -99,44 +97,6 @@ validateConfig(config);
 /* CSV                                                                 */
 /* ------------------------------------------------------------------ */
 
-/* RFC 4180 compliant CSV parser. Handles quoted fields with embedded
-   newlines, escaped quotes (""), and CRLF/LF line endings. */
-function parseCsv(text) {
-  const rows = [];
-  let row = [], field = '', quoted = false, i = 0;
-  text = text.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
-
-  while (i < text.length) {
-    const c = text[i];
-    if (quoted) {
-      if (c === '"') {
-        if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
-        quoted = false; i++; continue;
-      }
-      field += c; i++; continue;
-    }
-    if (c === '"') { quoted = true; i++; continue; }
-    if (c === ',') { row.push(field); field = ''; i++; continue; }
-    if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; i++; continue; }
-    field += c; i++;
-  }
-  if (field !== '' || row.length) { row.push(field); rows.push(row); }
-  return rows.filter((r) => r.some((v) => v.trim() !== ''));
-}
-
-/* Neutralize CSV formula injection by prefixing dangerous starters with ZWSP.
-   Applied to the name field before writing to CSV. */
-function sanitizeName(name) {
-  const s = String(name == null ? '' : name);
-  if (FORMULA_PREFIXES.includes(s[0])) return ZERO_WIDTH_SPACE + s;
-  return s;
-}
-
-function csvField(v) {
-  v = v == null ? '' : String(v);
-  return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
-}
-
 function toCsv(records) {
   const lines = [COLUMNS.join(',')];
   for (const r of records) lines.push(COLUMNS.map((c) => csvField(r[c])).join(','));
@@ -171,7 +131,7 @@ function batchNumberFromId(certificateId) {
 
 function readBatch(filename) {
   const full = path.join(PEOPLE, filename);
-  const rows = parseCsv(fs.readFileSync(full, 'utf8'));
+  const rows = parseRows(fs.readFileSync(full, 'utf8'));
   const problems = [];
 
   if (!rows.length) return { records: [], problems };
@@ -519,15 +479,6 @@ function detectLang(text) {
   return /[\u0980-\u09FF]/.test(text) ? 'bn' : null;
 }
 
-function formatDate(isoDate) {
-  const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate || '');
-  if (!parts) return isoDate;
-  const date = new Date(Date.UTC(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3])));
-  return new Intl.DateTimeFormat('en-GB', {
-    day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC'
-  }).format(date);
-}
-
 function recordPage(rec) {
   const d = 2;
   const nameLang = detectLang(rec.name);
@@ -559,7 +510,11 @@ function recordPage(rec) {
     '<dl>' +
     '<dt>Certificate ID</dt><dd class="mono id-copy" data-id="' + esc(rec.certificate_id) + '">' + esc(rec.certificate_id) + '</dd>' +
     '<dt>Batch</dt><dd>Batch ' + esc(rec.batch) + '</dd>' +
-    '<dt>Issued</dt><dd><time datetime="' + esc(rec.issued) + '">' + esc(formatDate(rec.issued)) + '</time></dd>' +
+    /* Fallback is the raw value: an issued row's date is already validated as
+       YYYY-MM-DD by checkRecords, so this branch is unreachable here -- but if
+       it ever is reached, showing the stored string beats showing nothing. */
+    '<dt>Issued</dt><dd><time datetime="' + esc(rec.issued) + '">' +
+      esc(formatDate(rec.issued, rec.issued)) + '</time></dd>' +
     '</dl>' +
     '<a class="dl" href="' + esc(rec.pdf_link) + '" target="_blank" rel="noopener noreferrer">' +
     'View certificate PDF <span class="external-link-hint">(opens in a new tab)</span></a>' +
@@ -858,12 +813,7 @@ function build() {
     for (const f of missing) console.log('    src/assets/logos/' + f);
   }
 
-  if (config._baseUrl_NOTE) {
-    console.log('\n  Note: the website address in config.json is still a placeholder.');
-    console.log('  It gets printed into every QR code — settle it before printing anything.');
-  } else {
-    console.log(`\n  QR base:  ${config.baseUrl}/c/<CERTIFICATE_ID>/`);
-  }
+  console.log(`\n  QR base:  ${config.baseUrl}/c/<CERTIFICATE_ID>/`);
   console.log('\n  Preview:  npm start   (or double-click preview.bat)\n');
 }
 

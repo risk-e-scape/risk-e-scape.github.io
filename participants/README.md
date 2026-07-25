@@ -15,22 +15,14 @@ ready. Add the issue date only when the certificate is actually issued.
 The batch number must be explicit for a new record. Existing records are also checked to ensure the
 `batch` column matches the batch encoded in IDs such as `RES-B2-...`.
 
-## Getting one certificate live
+## Getting a certificate live
 
-The certificate ID has to exist **before** the PDF is designed, since the ID and its QR code get
-printed on the certificate.
+The full procedure lives in **[../HOW-TO.md](../HOW-TO.md)** — it is written out once, there, so
+there is only ever one version to keep current.
 
-1. Add the row, `certificate_id` blank, `status` set to `pending`.
-2. Run `npm run drafts` (see `../HOW-TO.md`). It writes a new ID into the CSV when needed
-   and generates a PNG and SVG QR code, verification-links spreadsheet and watermarked draft PDF.
-3. Review the generated watermarked draft PDF, then design or revise the approved certificate
-   using that ID, QR code and verification URL. The name and ID must also appear as readable text.
-4. After officials approve the design and wording, run `npm run certificates` to create the
-   final PDF. Do not upload a draft PDF.
-5. Upload the final PDF to the shared Drive folder. **Set sharing to "Anyone with the link — Viewer"**
-   — otherwise the verification link only works for whoever uploaded it.
-6. Paste the share link into `pdf_link`, enter the issue date, set `status` to `issued`, then run
-   `npm test`, commit and push. The record goes live at `<baseUrl>/c/<the ID>/`.
+The one thing worth knowing before you start: the certificate ID has to exist **before** the PDF is
+designed, because the ID and its QR code get printed on the certificate. `npm run drafts` assigns
+it and writes it back into this file.
 
 ## The columns
 
