@@ -25,19 +25,24 @@
       <h2 class="sec">Why records are published</h2>
       <p>
         Publication allows a certificate holder, employer or other verifier with the certificate ID
-        to confirm that the credential was issued by {{HOST}}. Records cannot be searched by name
-        and certificate pages are excluded from search-engine indexing and the public sitemap.
+        to confirm that the credential was issued by {{HOST}}. This site provides no search by name,
+        and certificate pages are excluded from search-engine indexing and from the public sitemap.
       </p>
       <p>
         Anyone who receives a certificate ID or scans its QR code can access the corresponding
         record. Certificate holders should therefore share their certificate and ID deliberately.
       </p>
 
-      <h2 class="sec">Source-data protection</h2>
+      <h2 class="sec">Where the source data lives</h2>
       <p>
-        The participant roster used to generate records is not stored in this public website
-        repository. It must contain only information printed on the certificate; contact details,
-        identity numbers, grades, marks, addresses and dates of birth are not accepted by the build.
+        The participant roster that generates these records is published in this site's public
+        source repository, so the list of certificate holders can be obtained there as well as
+        through individual records. Participants are told this before a certificate is issued.
+      </p>
+      <p>
+        The roster carries only what the certificate itself prints: name, certificate ID, batch,
+        issue date and the certificate document link. Contact details, identity numbers, grades,
+        marks, addresses and dates of birth are rejected by the build and are never held here.
       </p>
 
       <h2 class="sec">Corrections and questions</h2>
@@ -48,7 +53,6 @@
       </p>
       <p class="contact-callout">
         <a class="btn" href="mailto:{{CONTACT_EMAIL}}">Request a correction</a>
-        <span>{{CONTACT_EMAIL}}</span>
       </p>
     </div>
   </section>

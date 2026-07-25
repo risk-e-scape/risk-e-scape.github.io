@@ -415,19 +415,26 @@ function header(current, depth) {
 }
 
 /* Logos only — the marks identify the consortium without a wall of
-   institution names. Each links out and carries its name as alt text
-   and tooltip, so nothing is lost for screen readers. */
+   institution names, which is also what lets the strip stay on one row.
+   Each links out and carries its name as a tooltip and an aria-label, so
+   nothing is lost for a pointer user or a screen reader. */
 function partnerLogos(depth) {
   const p = prefix(depth);
   return config.partners.map((x) => `
     <a class="logo" href="${esc(x.site)}" target="_blank" rel="noopener noreferrer"
-       aria-label="${esc(x.name)} (opens in a new tab)">
-      <img src="${p}assets/logos/${esc(x.file)}" alt=""
+       title="${esc(x.name)}" aria-label="${esc(x.name)} (opens in a new tab)">
+      <img src="${p}assets/logos/${esc(x.file)}" alt="" loading="lazy" decoding="async"
            onerror="this.outerHTML='<span class=\\'logo-missing\\'>${esc(x.short)}</span>'">
-      <span class="logo-name">${esc(x.name)} <span aria-hidden="true">↗</span></span>
     </a>`).join('');
 }
 
+/* The EU emblem is the official horizontal lockup -- the artwork already
+   sets "Co-funded by the European Union" beside the flag, so printing the
+   label again next to it renders the phrase twice. It carries a real alt
+   rather than alt="" for that same reason: with no adjacent text left, the
+   image is the only thing conveying the funding statement in this block.
+   The onerror fallback carries the wording too, so a missing file cannot
+   drop a statement the grant agreement requires. */
 function footer(depth) {
   const p = prefix(depth);
   const eu = config.euFunding;
@@ -443,16 +450,15 @@ function footer(depth) {
       </div>
       <div>
         <h2>Certificates</h2>
-        <p><a href="${p}verify/">Verify a certificate</a></p>
         <p><a href="${p}course/">About the course</a></p>
+        <p><a href="${p}verify/">Verify a certificate</a></p>
         <p><a href="${p}privacy/">Privacy and published records</a></p>
       </div>
       <div>
         <h2>Funding</h2>
         <div class="eu-block">
-          <img src="${p}assets/logos/${esc(eu.file)}" alt=""
-               onerror="this.outerHTML='<span class=\\'logo-missing eu\\'>EU</span>'">
-          <span class="eu-label">${esc(eu.label)}</span>
+          <img src="${p}assets/logos/${esc(eu.file)}" alt="${esc(eu.label)}"
+               onerror="this.outerHTML='<span class=\\'eu-label\\'>${esc(eu.label)}</span>'">
         </div>
       </div>
     </div>
@@ -748,7 +754,18 @@ function build() {
     const { records, problems: p } = readBatch(f);
     problems = problems.concat(p);
     if (p.length) continue;
-    assigned += assignMissingIds(f, records);
+    /* IDs are assigned locally by `npm run drafts` and committed. A CI runner
+       is thrown away after the build, so an ID assigned there would never be
+       saved -- the next build would mint a different random suffix and quietly
+       move a published record's URL. Refuse instead of guessing. */
+    if (process.env.CI) {
+      for (const r of records.filter((r) => !r.certificate_id)) {
+        problems.push(`${r._file} line ${r._line}: blank certificate_id — ` +
+                      'run `npm run drafts` locally and commit the result');
+      }
+    } else {
+      assigned += assignMissingIds(f, records);
+    }
     all = all.concat(records);
   }
   problems = problems.concat(checkRecords(all));

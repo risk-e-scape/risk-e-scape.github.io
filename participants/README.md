@@ -1,8 +1,10 @@
 # Participant list
 
-The live roster is `participants.csv`. It is intentionally ignored by Git because names and
-certificate links must not be stored in this public repository. Copy `participants.example.csv`
-to `participants.csv`, then open it in Excel or Google Sheets and save it as CSV when done.
+The live roster is `participants.csv`, tracked in this repository. Open it in Excel or Google
+Sheets and save it as CSV when done.
+
+**It is public.** Everyone listed appears in the published repository, not only on their own
+certificate record page. Obtain each participant's agreement before adding them.
 
 ## Adding a participant
 
@@ -19,16 +21,16 @@ The certificate ID has to exist **before** the PDF is designed, since the ID and
 printed on the certificate.
 
 1. Add the row, `certificate_id` blank, `status` set to `pending`.
-2. Run `npm run refresh-drafts` (see `../HOW-TO.md`). It writes a new ID into the CSV when needed
+2. Run `npm run drafts` (see `../HOW-TO.md`). It writes a new ID into the CSV when needed
    and generates a PNG and SVG QR code, verification-links spreadsheet and watermarked draft PDF.
 3. Review the generated watermarked draft PDF, then design or revise the approved certificate
    using that ID, QR code and verification URL. The name and ID must also appear as readable text.
-4. After officials approve the design and wording, run `npm run generate-certificates` to create the
+4. After officials approve the design and wording, run `npm run certificates` to create the
    final PDF. Do not upload a draft PDF.
 5. Upload the final PDF to the shared Drive folder. **Set sharing to "Anyone with the link — Viewer"**
    — otherwise the verification link only works for whoever uploaded it.
 6. Paste the share link into `pdf_link`, enter the issue date, set `status` to `issued`, then run
-   `npm test` and `npm run deploy-roster`. The record goes live at `<baseUrl>/c/<the ID>/`.
+   `npm test`, commit and push. The record goes live at `<baseUrl>/c/<the ID>/`.
 
 ## The columns
 
@@ -52,13 +54,14 @@ the sequence within that explicit batch. No separate file is needed.
 
 ## Keep in mind
 
-Each issued row becomes a public certificate page, so obtain the participant's agreement before
-issuing it. The private CSV itself must never be committed. Never add email, phone, address, ID
-numbers, grades, marks or dates of birth — the build refuses to run if it finds those.
+This file is public and each issued row also becomes a public certificate page, so obtain the
+participant's agreement before adding them. Never add email, phone, address, ID numbers, grades,
+marks or dates of birth — the build refuses to run if it finds those columns.
+
+Assign IDs before pushing. The build will not invent one on a GitHub Actions runner, because the
+runner is discarded afterwards and the following build would generate a different ID, moving a
+record that may already be printed on paper. `npm run drafts` assigns them locally; commit the CSV
+it writes.
 
 Keep the generated QR files and timestamped draft PDFs in the ignored local folders for coordinator
-review. They are not uploaded to the website. Run `npm run deploy-roster` to validate the complete
-CSV, update the repository Actions secret `PARTICIPANTS_CSV` and start deployment automatically.
-The workflow writes the secret only into the temporary build runner. Keep a protected backup because
-GitHub does not allow secrets to be read back. The command warns at 35 KB and stops at 45 KB because
-Actions secrets are limited to 48 KB.
+review. They are not uploaded to the website.

@@ -47,8 +47,8 @@ function csvField(value) {
 
 async function main() {
   if (!fs.existsSync(ROSTER)) {
-    console.error('\nPrivate roster not found: participants/participants.csv');
-    console.error('Copy participants/participants.example.csv to participants/participants.csv first.\n');
+    console.error('\nRoster not found: participants/participants.csv');
+    console.error('It is tracked in this repository — restore it with "git checkout participants/participants.csv".\n');
     process.exit(1);
   }
 

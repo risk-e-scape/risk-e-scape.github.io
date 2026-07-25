@@ -223,7 +223,7 @@ async function main() {
     : records.filter((record) => record.certificate_id && record.status !== 'revoked');
   if (!selected.length) {
     throw new Error(draft
-      ? 'No certificate IDs exist. Run npm run prepare-certificates first.'
+      ? 'No certificate IDs exist. Run npm run drafts first.'
       : 'No non-revoked records exist to generate.');
   }
   selected.forEach((record) => coursePeriod(record.batch, template));

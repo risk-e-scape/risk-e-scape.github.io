@@ -158,15 +158,18 @@ section.alt { background: var(--bg-alt); border-block: 1px solid var(--line); }
 h2.sec { font-size: 22px; margin: 0 0 8px; letter-spacing: -0.01em; }
 p.sec-sub { color: var(--muted); margin: 0 0 26px; max-width: 62ch; }
 .section-link { margin: -8px 0 0; }
-.section-action { margin: 4px 0 0; }
 .contact-callout {
   display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px;
   margin: 0; font-weight: 600;
 }
-.contact-callout span { overflow-wrap: anywhere; }
 
 .grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
-.course-facts { margin-top: 28px; }
+/* Narrower track than the base grid so all four facts sit on one row. The
+   five-tile "what the course covers" grid keeps 230px -- it reads better as
+   3 + 2 than as 4 + 1. */
+.course-facts {
+  margin-top: 28px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
 .tile {
   border: 1px solid var(--line); border-radius: var(--radius);
   padding: 18px 20px; background: var(--bg);
@@ -183,28 +186,45 @@ ol.steps { margin: 0; padding-left: 20px; max-width: 62ch; }
 ol.steps li { margin-bottom: 12px; font-size: 15px; }
 
 /* ---------- logo strip ---------- */
+/* flex:1 1 0 + min-width:0 gives equal columns that fill one row without
+   knowing the partner count -- it is data-driven from config.json. */
 .logos {
-  display: flex; flex-wrap: wrap; align-items: center;
-  gap: 30px 40px; justify-content: center;
+  display: flex; flex-wrap: nowrap; align-items: center; justify-content: center;
+  gap: 14px;
 }
 .logos .logo {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 8px; min-height: 58px; max-width: 180px;
-  color: var(--fg); text-decoration: none; text-align: center;
+  flex: 1 1 0; min-width: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: 4px; color: var(--fg); text-decoration: none;
 }
-.logos .logo img { max-height: 58px; max-width: 140px; width: auto; object-fit: contain; }
-.logos .logo-name {
-  display: block; font-size: 12px; font-weight: 650; line-height: 1.3;
-  color: var(--fg);
+/* Fixed height + contain is what makes a 1:1 mark and a 1.65:1 mark carry the
+   same visual weight. Left to their own aspect ratios, a square logo renders
+   at full height while a wide one renders as a thin sliver beside it.
+   No greyscale or recolour filter here: that generally breaches a partner's
+   brand rules -- see src/assets/logos/README.md. */
+.logos .logo img {
+  display: block; width: 100%; height: 44px;
+  object-fit: contain; object-position: center;
 }
-.logos a.logo:hover .logo-name { text-decoration: underline; }
+.logos .logo:hover img,
+.logos .logo:focus-visible img { opacity: .82; }
 .logo-missing {
   display: inline-flex; align-items: center; justify-content: center;
-  height: 52px; min-width: 82px; padding: 0 14px;
+  height: 44px; min-width: 60px; padding: 0 10px;
   border: 1px dashed var(--line); border-radius: 6px;
   font-size: 13px; font-weight: 700; letter-spacing: .04em; color: var(--muted);
 }
-.logo-missing.eu { border-color: var(--eu-blue); color: var(--eu-blue); }
+
+/* Below the single-row width the strip goes 4 + 3 rather than 3 + 3 + 1:
+   with seven partners, four per row is the only split that leaves no
+   orphan on the last line. */
+@media (max-width: 760px) {
+  .logos { flex-wrap: wrap; gap: 22px 14px; }
+  .logos .logo { flex: 0 1 calc(25% - 14px); }
+}
+@media (max-width: 520px) {
+  .logos .logo img { height: 38px; }
+}
 
 /* ---------- footer ---------- */
 footer.site {
@@ -222,14 +242,16 @@ footer.site p { margin: 0 0 6px; }
 .eu-block {
   display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap;
 }
-/* max-width caps how wide the emblem can render regardless of its source
-   file's own aspect ratio -- a wide logo would otherwise crowd out the
-   label text entirely in a narrow footer column. flex-wrap above lets the
-   label drop to its own line rather than overflow when that happens. */
+/* The emblem is a wide lockup (712x149). max-width keeps it inside a narrow
+   footer column instead of overflowing it, whatever the source file's own
+   aspect ratio happens to be. */
 .eu-block img { height: 40px; width: auto; max-width: 100%; }
+/* Only rendered by the img onerror fallback -- when the emblem loads, its
+   artwork carries this wording already. Sized to stand alone rather than to
+   sit beside the mark. */
 .eu-label {
-  font-size: 13px; font-weight: 600; color: var(--fg); max-width: 12ch;
-  line-height: 1.25; min-width: 0;
+  display: inline-block; font-size: 13px; font-weight: 600;
+  color: var(--eu-blue); max-width: 24ch; line-height: 1.25; min-width: 0;
 }
 .eu-disclaimer {
   font-size: 12px; line-height: 1.55; color: var(--muted);

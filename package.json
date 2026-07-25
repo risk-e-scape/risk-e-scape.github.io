@@ -8,14 +8,10 @@
   },
   "scripts": {
     "build": "node build.js",
-    "prepare-certificates": "node prepare-certificates.js",
-    "refresh-drafts": "npm run prepare-certificates && npm run generate-draft-certificates",
-    "generate-draft-certificates": "node generate-certificates.js --draft",
-    "generate-certificates": "node generate-certificates.js",
-    "deploy-roster": "node deploy-roster.js",
     "test": "node test.js --build",
     "start": "node serve.js",
-    "preview": "node serve.js"
+    "drafts": "node prepare-certificates.js && node generate-certificates.js --draft",
+    "certificates": "node generate-certificates.js"
   },
   "dependencies": {
     "@fontsource/noto-serif-bengali": "^5.2.8",

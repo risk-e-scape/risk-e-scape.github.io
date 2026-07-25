@@ -4,29 +4,28 @@ Written for whoever maintains the certificate list. No programming needed.
 
 ## One-time setup
 
-Install **Node.js** from <https://nodejs.org> (take the version marked *LTS*). Also install the
-**GitHub CLI** from <https://cli.github.com/>; on Windows, run `winget install GitHub.cli`. In a
-project terminal, run `gh auth login` once and choose **GitHub.com → HTTPS → Login with a web
-browser**.
+Install **Node.js** from <https://nodejs.org> (take the version marked *LTS*). That is all — the
+roster lives in this repository, so deploying is an ordinary `git push`.
 
 ## The certificate workflow
 
-### 1. Replace the local dummy roster
+### 1. Fill in the roster
 
-`participants/participants.csv` already exists on this computer and is ignored by Git. It contains
-three dummy rows, all marked `pending`. Open it in Excel or Google Sheets, replace those rows with
-the coordinator's roster, set the correct `batch`, leave `certificate_id` blank, and keep `status`
-as `pending`.
-
-This private file must never be added to the public repository. Full column instructions are in
+`participants/participants.csv` is tracked in this repository. Open it in Excel or Google Sheets,
+replace the placeholder rows with the coordinator's roster, set the correct `batch`, leave
+`certificate_id` blank, and keep `status` as `pending`. Full column instructions are in
 `participants/README.md`.
+
+**This file is public.** Everyone listed in it appears in the published repository, so obtain each
+participant's agreement first, and never add a column the certificate does not print — the build
+refuses to run if it finds email, phone, address, ID numbers, grades, marks or dates of birth.
 
 ### 2. Assign IDs and generate QR codes
 
 Run:
 
 ```bash
-npm run refresh-drafts
+npm run drafts
 ```
 
 This is the repeatable command to use after every roster or name change. It runs the ID/QR preparation
@@ -44,8 +43,8 @@ Use the certificate ID, verification URL and QR code in each PDF design.
 
 ### 3. Review the draft PDFs
 
-The `refresh-drafts` command already creates a timestamped folder with a watermarked draft PDF for
-every private row in `certificate-pdfs/`. These drafts are intentionally retained for layout review
+The `drafts` command already creates a timestamped folder with a watermarked draft PDF for
+every row in `certificate-pdfs/`. These drafts are intentionally retained for layout review
 and say **DRAFT — NOT VALID FOR ISSUE**. Open each PDF, scan its QR code and confirm it points to the
 matching verification URL. Use the newest timestamped folder after each refresh.
 
@@ -83,25 +82,31 @@ After certificate wording and signatories are approved, enter the real issue dat
 non-revoked participant and run:
 
 ```bash
-npm run generate-certificates
+npm run certificates
 ```
 
 Upload each approved PDF to the Google Drive folder. Set sharing to **Anyone with the link —
 Viewer**. Copy the Drive `/view` URL into `pdf_link`, then change `status` from `pending` to
 `issued`.
 
-### 5. Deploy without copying a secret manually
+### 5. Deploy
 
-First commit and push any public source changes in this repository. Then run:
+Check the site builds, then commit and push:
 
 ```bash
-npm run deploy-roster
+npm test
+git add -A
+git commit -m "Issue batch 2 certificates"
+git push
 ```
 
-The command validates the roster, securely replaces the `PARTICIPANTS_CSV` Actions secret, and
-triggers the deployment workflow. Monitor the result at:
+Pushing to `main` runs the build and publishes the site. Monitor the result at:
 
 <https://github.com/risk-e-scape/risk-e-scape.github.io/actions>
+
+Certificate IDs must be assigned before you push — the build refuses to invent one on the runner,
+because a runner is discarded afterwards and the next build would generate a different ID.
+`npm run drafts` handles that; just commit the CSV it writes.
 
 ### 6. Notify students
 
@@ -114,7 +119,7 @@ Students can scan the QR code or enter the ID at the verification page.
 
 Then open <http://localhost:8000> in a browser. Press `Ctrl+C` in the black window to stop it.
 
-Check a certificate record page using an issued ID from your private CSV, for example
+Check a certificate record page using an issued ID from the CSV, for example
 `http://localhost:8000/c/RES-B2-0001-HN24/`. Pending IDs deliberately have no public page.
 
 ## Changing the wording, contacts or partners

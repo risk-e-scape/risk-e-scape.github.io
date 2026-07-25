@@ -1,8 +1,9 @@
 # Build output — regenerated on each build, workflow deploys from artifact, not from repo
 /docs/
 
-# Private certificate roster and generated QR/verification materials
-/participants/participants.csv
+# Generated QR codes and certificate PDFs. The roster itself (participants/
+# participants.csv) IS tracked — it holds only what the certificate prints.
+# These two stay out: PDFs belong in Drive, QR codes regenerate from the IDs.
 /certificate-materials/
 /certificate-pdfs/
 

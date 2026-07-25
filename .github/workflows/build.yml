@@ -15,8 +15,6 @@ permissions:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    env:
-      PARTICIPANTS_CSV: ${{ secrets.PARTICIPANTS_CSV }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -29,12 +27,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Load private participant roster
-        if: env.PARTICIPANTS_CSV != ''
-        run: |
-          mkdir -p participants
-          printf '%s\n' "$PARTICIPANTS_CSV" > participants/participants.csv
 
       - name: Build and run tests
         run: npm test
