@@ -81,7 +81,8 @@ async function main() {
   console.log('  certificate-materials/verification-links.csv');
   console.log('  certificate-materials/<CERTIFICATE_ID>.png');
   console.log('  certificate-materials/<CERTIFICATE_ID>.svg');
-  console.log('\nThese files are private and ignored by Git. Replace all dummy names before issuance.\n');
+  console.log('\nThese files stay on this computer and are ignored by Git.');
+  console.log('Replace the placeholder names in participants.csv before issuance.\n');
 }
 
 main().catch((error) => {

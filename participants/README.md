@@ -9,7 +9,7 @@ certificate record page. Obtain each participant's agreement before adding them.
 ## Adding a participant
 
 Add one row. Fill in `batch` and `name`. Leave `certificate_id` empty — the build fills it in
-and saves it back into the private file. Set `status` to `pending` until the certificate PDF is
+and saves it back into this file. Set `status` to `pending` until the certificate PDF is
 ready. Add the issue date only when the certificate is actually issued.
 
 The batch number must be explicit for a new record. Existing records are also checked to ensure the
