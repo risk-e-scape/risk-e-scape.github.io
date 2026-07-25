@@ -315,6 +315,25 @@ function esc(s) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+/* Text destined for a JavaScript string literal inside an HTML attribute --
+   the onerror fallbacks below. esc() is wrong there: it turns ' into &#39;,
+   the browser HTML-decodes the attribute back to ', and that apostrophe then
+   terminates the JS string. A partner short name like "King's" would produce
+   a SyntaxError and silently kill the fallback. JSON.stringify quotes and
+   escapes for JS; the entity-encoding pass afterwards keeps it safe as an
+   attribute value. Returns the surrounding quotes too. */
+function jsAttr(s) {
+  return esc(JSON.stringify(String(s == null ? '' : s)));
+}
+
+/* Builds an onerror handler that swaps a missing image for a text span.
+   Three layers are in play and each needs its own escape: esc(text) for the
+   HTML that outerHTML will parse, JSON.stringify for the JS string literal,
+   and entity-encoding for the attribute value. jsAttr does the last two. */
+function imgFallback(className, text) {
+  return `this.outerHTML=${jsAttr(`<span class="${className}">${esc(text)}</span>`)}`;
+}
+
 /* 'root' is for 404.html specifically: GitHub Pages serves that file's
    BYTES for any unmatched URL while leaving the mistyped URL in the
    address bar, so 404.html has no fixed depth the way every other page
@@ -424,7 +443,7 @@ function partnerLogos(depth) {
     <a class="logo" href="${esc(x.site)}" target="_blank" rel="noopener noreferrer"
        title="${esc(x.name)}" aria-label="${esc(x.name)} (opens in a new tab)">
       <img src="${p}assets/logos/${esc(x.file)}" alt="" loading="lazy" decoding="async"
-           onerror="this.outerHTML='<span class=\\'logo-missing\\'>${esc(x.short)}</span>'">
+           onerror="${imgFallback('logo-missing', x.short)}">
     </a>`).join('');
 }
 
@@ -458,7 +477,7 @@ function footer(depth) {
         <h2>Funding</h2>
         <div class="eu-block">
           <img src="${p}assets/logos/${esc(eu.file)}" alt="${esc(eu.label)}"
-               onerror="this.outerHTML='<span class=\\'eu-label\\'>${esc(eu.label)}</span>'">
+               onerror="${imgFallback('eu-label', eu.label)}">
         </div>
       </div>
     </div>

@@ -1,0 +1,20 @@
+# Normalise line endings in the repository to LF regardless of the platform
+# a contributor commits from. Without this, someone with core.autocrlf=false
+# on Windows commits CRLF, and the workflow's trailing-whitespace check --
+# git grep "[[:space:]]$" -- matches the \r at the end of every single line,
+# failing the lint job repo-wide with a misleading error.
+* text=auto
+
+# Batch files are the exception: cmd.exe wants CRLF, and .editorconfig
+# already declares that for [*.{bat,ps1}].
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Never touch binaries.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary

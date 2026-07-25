@@ -11,5 +11,10 @@ insert_final_newline = true
 [*.{bat,ps1}]
 end_of_line = crlf
 
+# Markdown is deliberately NOT exempt from trailing-whitespace trimming. The
+# workflow's lint job greps "[[:space:]]$" across *.md and fails the build on a
+# match, so exempting it here would let an editor produce a commit that CI then
+# rejects. Nothing in these docs uses the two-space hard line break; write a
+# backslash or a blank line instead.
 [*.md]
-trim_trailing_whitespace = false
+trim_trailing_whitespace = true
